@@ -47,9 +47,9 @@ export class Stats extends Singleton {
 		const last = this.db.getLastCommand();
 
 		return {
-			totalToday: today.total,
-			successCount: today.success_count,
-			failCount: today.fail_count,
+			totalToday: today.total || 0,
+			successCount: today.success_count || 0,
+			failCount: today.fail_count || 0,
 			mostUsed: mostUsed ? { name: mostUsed.name, count: mostUsed.count } : null,
 			lastExecuted: last
 				? { name: last.name, deviceHash: last.device_hash, success: last.success === 1, at: last.created_at }
