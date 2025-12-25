@@ -4,7 +4,6 @@ project(YumiLink LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# --- Dependencies ---
 include(FetchContent)
 FetchContent_Declare(
   nlohmann_json
@@ -13,11 +12,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# --- Source files ---
 set(SRC_MEDIA lib/media_control.cpp)
 set(SRC_DEVICE lib/device_control.cpp)
 
-# --- Windows (cross-compile) ---
 if(WIN32 OR MINGW)
     message(STATUS "Building for Windows target")
 
@@ -31,7 +28,20 @@ if(WIN32 OR MINGW)
             _WIN32_WINNT=0x0A00
             WINRT_LEAN_AND_MEAN
         )
-        target_link_libraries(${target} PRIVATE nlohmann_json::nlohmann_json)
+
+        target_link_libraries(${target} PRIVATE
+            nlohmann_json::nlohmann_json
+        )
+
+        if (MSVC)
+            target_compile_options(${target} PRIVATE /await)
+            target_link_libraries(${target} PRIVATE
+                windowsapp
+                runtimeobject
+                ole32
+            )
+        endif()
+
         set_target_properties(${target} PROPERTIES
             SUFFIX ".dll"
             PREFIX ""
@@ -41,6 +51,5 @@ else()
     message(FATAL_ERROR "You are not targeting Windows. Use a MinGW toolchain file.")
 endif()
 
-# --- Install (optional) ---
 install(TARGETS media_control device_control
         RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
