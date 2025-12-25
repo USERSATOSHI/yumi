@@ -44,3 +44,4 @@ setup.ts
 test-ffi.ts
 debug-stats.ts
 db.sqlite
+build-windows

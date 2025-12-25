@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/usersatoshi/projects/yumi/packages/link/build-windows/cmake_install.cmake",
-		"/home/usersatoshi/projects/yumi/packages/link/build-windows/_deps/nlohmann_json-build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

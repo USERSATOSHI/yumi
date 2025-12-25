@@ -1,3 +1,0 @@
-/usr/bin/cmake -E rm -f CMakeFiles/media_control.dir/objects.a
-/usr/bin/x86_64-w64-mingw32-ar qc CMakeFiles/media_control.dir/objects.a @CMakeFiles/media_control.dir/objects1.rsp
-/usr/bin/x86_64-w64-mingw32-g++ -shared -o media_control.dll -Wl,--out-implib,libmedia_control.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles/media_control.dir/objects.a -Wl,--no-whole-archive @CMakeFiles/media_control.dir/linkLibs.rsp
