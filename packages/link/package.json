@@ -13,7 +13,8 @@
 		"generate-keys": "bun run generate-keys.ts",
 		"build:native": "cmake -S . -B build && cmake --build build --config Release",
 		"build:win": "mingw-w64-cmake -S . -B build && mingw-w64-cmake --build build --config Release",
-		"compile:win": "bun build --target=bun-windows-x64 --compile --minify ./src/index.ts --outfile ./release/win/yumi-link ./lib/*.cpp",
+		"compile:win": "bun build --target=bun-windows-x64 --compile --minify ./src/index.ts --outfile ./release/win/yumi-link ./lib/*.cpp && bun run mvdll:win",
+		"mvdll:win": "bun run ./scripts/win-move-dll.ts",
 		"compile:linux": "bun build --target=bun-linux-x64 --compile --minify ./src/index.ts --outfile ./release/linux/yumi-link ./lib/*.cpp",
 		"compile:macos": "bun build --target=bun-darwin-x64 --compile --minify ./src/index.ts --outfile ./release/macos/yumi-link ./lib/*.cpp"
 	},
