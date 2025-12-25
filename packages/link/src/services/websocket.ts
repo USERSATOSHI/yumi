@@ -198,7 +198,7 @@ export class WebSocketClient extends Singleton {
 			};
 
 			this.#send(message);
-		}, 5000);
+		}, 1000);
 	}
 
 	async #handleMessage(data: string | Buffer): Promise<void> {
