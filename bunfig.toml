@@ -1,0 +1,5 @@
+[install]
+shamefully-hoist = true
+
+[paths]
+base = "./"

@@ -1,0 +1,41 @@
+{
+	"name": "@yumi/core",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "bun run src/index.ts",
+		"start": "bun run src/index.ts",
+		"test": "bun test",
+		"test:speech": "bun run tests/run-tests.ts",
+		"test:unit": "bun run tests/run-tests.ts unit",
+		"test:integration": "bun run tests/run-tests.ts integration",
+		"test:coverage": "bun test tests/ --coverage",
+		"test:watch": "bun test tests/ --watch",
+		"format": "bunx prettier . --write",
+		"check-format": "bunx prettier . --check",
+		"typecheck": "bunx tsc --noEmit"
+	},
+	"dependencies": {
+		"@elysiajs/cors": "catalog:",
+		"@google/genai": "catalog:google",
+		"@yumi/logger": "workspace:*",
+		"@yumi/patterns": "workspace:*",
+		"@yumi/results": "workspace:*",
+		"@yumi/stats": "workspace:*",
+		"@yumi/tools": "workspace:*",
+		"@yumi/vectordb": "workspace:*",
+		"audic": "catalog:voice",
+		"dotenv": "catalog:",
+		"elysia": "catalog:",
+		"elysia-rate-limit": "^4.4.0",
+		"jsonrepair": "^3.12.0",
+		"mic": "catalog:voice",
+		"ollama": "^0.6.3",
+		"sharp": "^0.34.2",
+		"ts-morph": "^27.0.2"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "catalog:"
+	}
+}

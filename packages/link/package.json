@@ -1,0 +1,30 @@
+{
+	"name": "@yumi/link",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "bun run src/index.ts",
+		"start": "bun run src/index.ts",
+		"test": "bun test",
+		"format": "bunx prettier . --write",
+		"check-format": "bunx prettier . --check",
+		"typecheck": "bunx tsc --noEmit",
+		"setup": "bun run setup.ts",
+		"generate-keys": "bun run generate-keys.ts",
+		"build:native": "cmake -S . -B build && cmake --build build --config Release",
+		"build:win": "mingw-w64-cmake -S . -B build && mingw-w64-cmake --build build --config Release",
+		"compile:win": "bun build --target=bun-windows-x64 --compile --minify ./src/index.ts --outfile ./release/win/yumi-link ./lib/*.cpp",
+		"compile:linux": "bun build --target=bun-linux-x64 --compile --minify ./src/index.ts --outfile ./release/linux/yumi-link ./lib/*.cpp",
+		"compile:macos": "bun build --target=bun-darwin-x64 --compile --minify ./src/index.ts --outfile ./release/macos/yumi-link ./lib/*.cpp"
+	},
+	"dependencies": {
+		"dotenv": "catalog:",
+		"@yumi/logger": "workspace:*",
+		"@yumi/results": "workspace:*",
+		"@yumi/patterns": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "catalog:"
+	}
+}
