@@ -3,7 +3,7 @@ import { mkdir, readdir, copyFile, stat } from "fs/promises";
 import { existsSync } from "fs";
 
 const SRC = process.argv[2] ?? "build/Release";
-const DEST = process.argv[3] ?? "releases/win";
+const DEST = process.argv[3] ?? "release/win";
 
 async function copyDir(src: string, dest: string) {
 	await mkdir(dest, { recursive: true });
