@@ -1,17 +1,46 @@
 {
-  "name": "@yumi/deck",
-  "version": "1.0.0",
+  "name": "deck",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "start": "bun run src/index.ts",
-    "test": "bun test",
-    "format": "bunx prettier . --write",
-    "check-format": "bunx prettier . --check",
-    "typecheck": "bunx tsc --noEmit"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.6",
+    "@mui/material": "^7.3.6",
+    "@pixiv/three-vrm": "^3.4.4",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
+    "framer-motion": "^12.23.26",
+    "leva": "^0.10.1",
+    "onnxruntime-web": "^1.23.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.11.0",
+    "three": "^0.182.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "catalog:"
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "npm:rolldown-vite@7.2.5"
+  },
+  "overrides": {
+    "vite": "npm:rolldown-vite@7.2.5"
   }
 }

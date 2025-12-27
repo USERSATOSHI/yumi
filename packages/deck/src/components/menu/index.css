@@ -1,0 +1,36 @@
+.bottom-menu {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 56px;
+	background: rgba(31, 31, 31, 0.95);
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+	z-index: 1000;
+	corner-top-left-shape: superellipse(0.8);
+	corner-top-right-shape: superellipse(0.8);
+	border-radius: 32px;
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+	padding-left: 32px;
+	padding-right: 32px;
+}
+.bottom-menu a {
+	color: #e3e3e3;
+	text-decoration: none;
+	font-size: 1.1rem;
+	padding: 8px 16px;
+	border-radius: 16px;
+	transition: background 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	corner-shape: squircle;
+}
+.bottom-menu a.active {
+	background: #e7e7e7;
+	color: #1a1a1a;
+}

@@ -1,0 +1,23 @@
+.star {
+	 position: relative;
+}
+ .star .s1, .star .s2 {
+	 position: absolute;
+	 color: white;
+	 filter: drop-shadow(0 0 4px black);
+	 animation: scale 2s ease-in-out infinite alternate;
+}
+ @keyframes scale {
+	 0% {
+		 transform: scale(0.5);
+	}
+	 100% {
+		 transform: scale(1.2);
+	}
+}
+ .star .s2 {
+	 transform: rotateZ(45deg);
+	 color: white;
+	 font-weight: 1000;
+}
+ 

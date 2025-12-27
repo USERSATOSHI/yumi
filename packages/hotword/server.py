@@ -29,9 +29,16 @@ import argparse
 from datetime import datetime
 from typing import Set
 
+
 import pyaudio
 import numpy as np
 from openwakeword.model import Model
+import requests
+try:
+    from vosk import Model as VoskModel, KaldiRecognizer
+except ImportError:
+    print("Please install vosk: pip install vosk")
+    exit(1)
 
 # WebSocket server
 try:
@@ -45,7 +52,11 @@ except ImportError:
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8765
 DETECTION_THRESHOLD = 0.5
+
 COOLDOWN_SECONDS = 2.0  # Prevent multiple triggers in quick succession
+STT_TIMEOUT_SECONDS = 2.5  # Silence timeout for end of speech
+CORE_API_URL = "http://localhost:11000/api/speak"
+CORE_API_SPEAKER = 47
 
 # Audio settings
 FORMAT = pyaudio.paInt16
@@ -80,6 +91,9 @@ class HotwordServer:
         self.oww_model = None
         self.audio = None
         self.mic_stream = None
+        self.vosk_model = None
+        self.recognizer = None
+        self.mode = "hotword"  # or "stt"
 
     def init_audio(self):
         """Initialize PyAudio and microphone stream."""
@@ -102,10 +116,18 @@ class HotwordServer:
             )
             print(f"[Model] Loaded custom model: {self.model_path}")
         else:
-            self.oww_model = Model(inference_framework=self.inference_framework)
+            self.oww_model = Model()  # Do NOT pass inference_framework here
             print("[Model] Loaded default models")
 
         print(f"[Model] Available wake words: {list(self.oww_model.models.keys())}")
+        # Load Vosk model for STT
+        try:
+            self.vosk_model = VoskModel("model/vosk-model-en-us-0.22-lgraph")  # expects ./model/vosk-model-en-us-0.22-lgraph directory with Vosk model
+            self.recognizer = KaldiRecognizer(self.vosk_model, RATE)
+            print("[STT] Vosk model loaded.")
+        except Exception as e:
+            print(f"[STT] Could not load Vosk model: {e}")
+            self.vosk_model = None
 
     async def broadcast(self, message: dict):
         """Send message to all connected WebSocket clients."""
@@ -147,6 +169,9 @@ class HotwordServer:
         print(f"   Broadcasting to {len(connected_clients)} client(s)...")
 
         await self.broadcast(event)
+        # Switch to STT mode
+        print("[MODE] Switching to STT mode")
+        self.mode = "stt"
 
     def audio_loop(self, loop: asyncio.AbstractEventLoop):
         """Continuous audio capture and prediction loop (runs in separate thread)."""
@@ -154,31 +179,99 @@ class HotwordServer:
         print("🎧 Listening for wake words...")
         print("#" * 60 + "\n")
 
+        silence_start = None
+        last_mode = self.mode
         while self.running:
             try:
-                # Capture audio chunk
                 audio_data = np.frombuffer(
                     self.mic_stream.read(self.chunk_size, exception_on_overflow=False),
                     dtype=np.int16,
                 )
 
-                # Run prediction
-                prediction = self.oww_model.predict(audio_data)
+                if self.mode != last_mode:
+                    print(f"[MODE] Switched to {self.mode.upper()} mode")
+                    last_mode = self.mode
 
-                # Check each model for detection
-                for model_name in self.oww_model.prediction_buffer.keys():
-                    scores = list(self.oww_model.prediction_buffer[model_name])
-                    current_score = scores[-1]
-
-                    if current_score > self.threshold:
-                        # Schedule the async broadcast on the event loop
-                        asyncio.run_coroutine_threadsafe(
-                            self.handle_detection(model_name, current_score), loop
-                        )
-
+                if self.mode == "hotword":
+                    prediction = self.oww_model.predict(audio_data)
+                    for model_name in self.oww_model.prediction_buffer.keys():
+                        scores = list(self.oww_model.prediction_buffer[model_name])
+                        current_score = scores[-1]
+                        if current_score > self.threshold:
+                            asyncio.run_coroutine_threadsafe(
+                                self.handle_detection(model_name, current_score), loop
+                            )
+                elif self.mode == "stt" and self.vosk_model:
+                    if self.recognizer.AcceptWaveform(audio_data.tobytes()):
+                        result = self.recognizer.Result()
+                        text = json.loads(result).get("text", "").strip()
+                        print(f"[STT] Vosk transcript: '{text}'")
+                        if text:
+                            print(f"[STT] Recognized: {text}")
+                            # Send to deck and core
+                            asyncio.run_coroutine_threadsafe(
+                                self.handle_stt_result(text), loop
+                            )
+                            print("[MODE] Switching to HOTWORD mode")
+                            self.mode = "hotword"
+                            self.recognizer.Reset()
+                            silence_start = None
+                    else:
+                        # Check for silence (no partial result)
+                        partial = json.loads(self.recognizer.PartialResult()).get("partial", "")
+                        if not partial:
+                            if silence_start is None:
+                                silence_start = datetime.now()
+                            elif (datetime.now() - silence_start).total_seconds() > STT_TIMEOUT_SECONDS:
+                                # Timeout, treat as end of speech
+                                result = self.recognizer.Result()
+                                text = json.loads(result).get("text", "").strip()
+                                print(f"[STT] Vosk transcript (timeout): '{text}'")
+                                if text:
+                                    print(f"[STT] Recognized (timeout): {text}")
+                                    asyncio.run_coroutine_threadsafe(
+                                        self.handle_stt_result(text), loop
+                                    )
+                                print("[MODE] Switching to HOTWORD mode")
+                                self.mode = "hotword"
+                                self.recognizer.Reset()
+                                silence_start = None
+                        else:
+                            silence_start = None
             except Exception as e:
                 print(f"[Error] Audio loop: {e}")
                 continue
+
+    async def handle_stt_result(self, text: str):
+        # Send to deck clients
+        event = {
+            "type": "stt_result",
+            "text": text,
+            "timestamp": datetime.now().isoformat(),
+        }
+        await self.broadcast(event)
+        # Send to core
+        try:
+            resp = requests.post(
+                CORE_API_URL,
+                json={"text": text, "speaker": CORE_API_SPEAKER},
+                timeout=2,
+            )
+            print(f"[Core] Sent to core, status: {resp.status_code}")
+            # Echo core response to deck clients
+            try:
+                core_result = resp.json() if resp.headers.get('content-type', '').startswith('application/json') else resp.text
+            except Exception:
+                core_result = resp.text
+            await self.broadcast({
+                "type": "core_response",
+                "text": text,
+                "core_result": core_result,
+                "status": resp.status_code,
+                "timestamp": datetime.now().isoformat(),
+            })
+        except Exception as e:
+            print(f"[Core] Error sending to core: {e}")
 
     async def handle_client(self, websocket: WebSocketServerProtocol):
         """Handle a new WebSocket client connection."""

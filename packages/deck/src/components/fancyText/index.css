@@ -1,0 +1,135 @@
+.namestarContainer {
+	 padding: 32px;
+	 position: relative;
+	 width: fit-content;
+	 /* transform: rotateZ(-5deg); */
+	 /* left: 10px; */
+	 font-family: 'Bonbon', cursive;
+}
+ .namestarContainer .star1 {
+	 position: absolute;
+	 top: 10px;
+	 left: -2.5%;
+	 z-index: 0;
+	 scale: .7;
+}
+ .namestarContainer .star2 {
+	 position: absolute;
+	 top: 10px;
+	 right: -2.5%;
+	 z-index: 0;
+	 scale: 0.35;
+}
+ .namestarContainer .star3 {
+	 position: absolute;
+	 bottom: 10px;
+	 left: 12.5%;
+	 z-index: 0;
+	 scale: 0.25;
+}
+ .namestarContainer .star4 {
+	 position: absolute;
+	 bottom: 20px;
+	 right: 3.5%;
+	 scale: 0.8;
+	 z-index: 0;
+}
+ .namestarContainer .star5 {
+	 position: absolute;
+	 top: 2px;
+	 left: 50.5%;
+	 z-index: 0;
+	 scale: 0.4;
+}
+ .namestarContainer .star6 {
+	 position: absolute;
+	 bottom: -20px;
+	 right: 40.5%;
+	 z-index: 0;
+	 scale: 0.4;
+}
+ .namestarContainer .nameContainer {
+	 display: flex;
+	 flex-direction: column;
+	 align-items: center;
+	 justify-content: center;
+	 position: relative;
+	 width: min-content;
+	 height: fit-content;
+	 padding-top: 20px;
+}
+ .namestarContainer .nameContainer .main {
+	 color: #1f1f1f;
+	 font-size: 48px;
+	 font-family: "Bonbon", cursive;
+	 position: relative;
+	 z-index: 1;
+	 text-shadow: 0 0 2px #1f1f1f;
+	 width: max-content;
+}
+ .namestarContainer .nameContainer .main::before {
+	 content: attr(title);
+	 -webkit-text-stroke: 0.45em #f1f1f1;
+	 position: absolute;	
+}
+ .namestarContainer .nameContainer .main::after {
+	 content: attr(title);
+	 position: absolute;
+	 left: 0;
+}
+ .namestarContainer .nameContainer .main-below {
+	 color: transparent;
+	 font-size: 48px;
+	 font-family: "Bonbon", cursive;
+	 position: absolute;
+	 bottom: -10px;
+	 right: -5px;
+	 z-index: 0;
+}
+ .namestarContainer .nameContainer .main-below::before {
+	 content: attr(title);
+	 -webkit-text-stroke: 0.5em #1f1f1f;
+	 position: absolute;
+}
+ .namestarContainer .nameContainer .main-below::after {
+	 content: attr(title);
+	 -webkit-text-stroke: 1px #1f1f1f;
+	 position: absolute;
+	 left: 0;
+}
+ .namestarContainer .nameContainer .jap {
+	 background-color: #cbcbcb;
+	 border-radius: 8px;
+	 font-size: 16px;
+	 padding-left: 16px;
+	 padding-right: 16px;
+	 position: absolute;
+	 z-index: 2;
+	 top: 8px;
+	 right: 25px;
+	 font-family: "Bonbon", cursive;
+	 font-weight: 600;
+	 width: fit-content;
+}
+ .namestarContainer .nameContainer .sub {
+	 background-color: #1f1f1f;
+	 position: absolute;
+	 color: white;
+	 font-family: "Delius Unicase", cursive;
+	 z-index: 2;
+	 padding-left: 16px;
+	 padding-right: 16px;
+	 border-radius: 16px;
+	 font-size: 12px;
+	 white-space: nowrap;
+	 bottom: -32px;
+	 right: 32px;
+	 padding-top: 4px;
+	 padding-bottom: 4px;
+	 display: flex;
+	 flex-direction: row;
+	 align-items: center;
+	 justify-content: center;
+}
+
+ 

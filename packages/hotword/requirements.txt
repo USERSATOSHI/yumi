@@ -3,3 +3,5 @@ numpy
 openwakeword
 websockets
 onnxruntime
+requests
+vosk
