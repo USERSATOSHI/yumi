@@ -67,7 +67,7 @@ export class CommandService extends Singleton {
 
 		// Device control commands
 		if (fn === 'volume') {
-			const volume = args?.volume as number;
+			const volume = args?.level as number;
 			if (typeof volume !== 'number') {
 				return Result.err(CommandError.InvalidCommand('setVolume requires volume number'));
 			}
