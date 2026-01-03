@@ -436,6 +436,18 @@ extern "C" {
                     result["raw_position_seconds"] = current_position;
                     result["playback_status"] = playback_status;
                     
+                    // Try to get thumbnail/artwork URL if available
+                    try {
+                        auto thumbnail = info.Thumbnail();
+                        if (thumbnail) {
+                            // For Windows, we can get the thumbnail reference but converting to URL is complex
+                            // Mark as having artwork available - client can request it separately if needed
+                            result["artwork"] = nullptr;
+                        }
+                    } catch (...) {
+                        // Thumbnail not available, skip
+                    }
+                    
                     return result;
                 } catch (const std::exception& ex) {
                     json error;
@@ -460,6 +472,7 @@ extern "C" {
                 std::string title = exec("playerctl metadata title");
                 std::string artist = exec("playerctl metadata artist");
                 std::string status = exec("playerctl status");
+                std::string artwork = exec("playerctl metadata mpris:artUrl");
                 
                 // Get position and duration
                 auto [position, duration] = unix_tracker.getCurrentPosition();
@@ -472,6 +485,11 @@ extern "C" {
                 track_info["raw_duration_seconds"] = duration;
                 track_info["raw_position_seconds"] = position;
                 track_info["playback_status"] = status;
+                
+                // Add artwork URL if available
+                if (!artwork.empty() && artwork != "No players found") {
+                    track_info["artwork"] = artwork;
+                }
             } catch (const std::exception& ex) {
                 track_info["error"] = ex.what();
             }

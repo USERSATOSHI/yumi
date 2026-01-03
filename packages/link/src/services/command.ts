@@ -21,6 +21,7 @@ export interface TrackInfo {
 	duration: number;
 	position: number;
 	playback_status: 'playing' | 'paused' | 'stopped';
+	artwork?: string;
 }
 
 export class CommandService extends Singleton {
@@ -163,6 +164,7 @@ export class CommandService extends Singleton {
 					duration: trackInfo.duration || 0,
 					position: trackInfo.current_position || 0,
 					playback_status: trackInfo.playback_status || 'stopped',
+					artwork: trackInfo.artwork || undefined,
 				};
 
 				return Result.ok(result);

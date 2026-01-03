@@ -42,6 +42,7 @@ type MusicWSData = {
 		duration?: number;
 		position?: number;
 		status?: 'playing' | 'paused' | 'stopped';
+		artwork?: string;
 		hash: string;
 	};
 };
@@ -206,6 +207,7 @@ export class WebSocketClient extends Singleton {
 					duration: track.duration,
 					position: track.position,
 					status: track.playback_status,
+					artwork: track.artwork,
 					hash: this.device.hash,
 				},
 			};
