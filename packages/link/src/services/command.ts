@@ -20,6 +20,8 @@ export interface TrackInfo {
 	artist: string;
 	duration: number;
 	position: number;
+	durationFormatted: string;
+	positionFormatted: string;
 	playback_status: 'playing' | 'paused' | 'stopped';
 	artwork?: string;
 }
@@ -161,8 +163,10 @@ export class CommandService extends Singleton {
 				const result: TrackInfo = {
 					title: trackInfo.title || '',
 					artist: trackInfo.artist || '',
-					duration: trackInfo.duration || 0,
-					position: trackInfo.current_position || 0,
+					duration: trackInfo.raw_duration_seconds || 0,
+					position: trackInfo.raw_position_seconds || 0,
+					durationFormatted: trackInfo.duration || '0:00',
+					positionFormatted: trackInfo.current_position || '0:00',
 					playback_status: trackInfo.playback_status || 'stopped',
 					artwork: trackInfo.artwork || undefined,
 				};
@@ -175,6 +179,8 @@ export class CommandService extends Singleton {
 					artist: '',
 					duration: 0,
 					position: 0,
+					durationFormatted: '0:00',
+					positionFormatted: '0:00',
 					playback_status: 'stopped',
 				};
 

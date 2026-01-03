@@ -41,6 +41,8 @@ type MusicWSData = {
 		artist?: string;
 		duration?: number;
 		position?: number;
+		durationFormatted?: string;
+		positionFormatted?: string;
 		status?: 'playing' | 'paused' | 'stopped';
 		artwork?: string;
 		hash: string;
@@ -206,6 +208,8 @@ export class WebSocketClient extends Singleton {
 					artist: track.artist,
 					duration: track.duration,
 					position: track.position,
+					durationFormatted: track.durationFormatted,
+					positionFormatted: track.positionFormatted,
 					status: track.playback_status,
 					artwork: track.artwork,
 					hash: this.device.hash,
