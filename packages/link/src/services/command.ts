@@ -23,7 +23,7 @@ export interface TrackInfo {
 	durationFormatted: string;
 	positionFormatted: string;
 	playback_status: 'playing' | 'paused' | 'stopped';
-	artwork?: string;
+	artwork?: string | null; // undefined = not included, null = clear, string = data URL
 }
 
 export class CommandService extends Singleton {
@@ -160,6 +160,13 @@ export class CommandService extends Singleton {
 
 			try {
 				const trackInfo = JSON.parse(json as unknown as string);
+				
+				// Handle artwork: undefined = not in JSON, null = clear, string = data URL
+				let artwork: string | null | undefined = undefined;
+				if ('artwork' in trackInfo) {
+					artwork = trackInfo.artwork; // preserves null
+				}
+				
 				const result: TrackInfo = {
 					title: trackInfo.title || '',
 					artist: trackInfo.artist || '',
@@ -168,7 +175,7 @@ export class CommandService extends Singleton {
 					durationFormatted: trackInfo.duration || '0:00',
 					positionFormatted: trackInfo.current_position || '0:00',
 					playback_status: trackInfo.playback_status || 'stopped',
-					artwork: trackInfo.artwork || undefined,
+					artwork,
 				};
 
 				return Result.ok(result);

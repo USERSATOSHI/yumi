@@ -44,7 +44,7 @@ type MusicWSData = {
 		durationFormatted?: string;
 		positionFormatted?: string;
 		status?: 'playing' | 'paused' | 'stopped';
-		artwork?: string;
+		artwork?: string | null; // undefined = omit, null = clear, string = data URL
 		hash: string;
 	};
 };

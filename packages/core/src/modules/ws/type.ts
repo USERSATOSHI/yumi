@@ -27,6 +27,7 @@ export type MusicWSData = {
 		duration?: number;
 		position?: number;
 		status?: 'playing' | 'paused' | 'stopped';
+		artwork?: string;
 		hash: string;
 	}
 }

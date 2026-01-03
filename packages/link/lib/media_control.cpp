@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 using json = nlohmann::json;
 
@@ -16,9 +17,11 @@ using json = nlohmann::json;
     #include <windows.h>
     #include <winrt/Windows.Foundation.h>
     #include <winrt/Windows.Media.Control.h>
+    #include <winrt/Windows.Storage.Streams.h>
     using namespace winrt;
     using namespace Windows::Media::Control;
     using namespace Windows::Foundation;
+    using namespace Windows::Storage::Streams;
     #define EXPORT_API __declspec(dllexport)
 #else
     #define PLATFORM_UNIX true
@@ -30,6 +33,40 @@ using json = nlohmann::json;
     #include <sstream>
     #define EXPORT_API __attribute__((visibility("default")))
 #endif
+
+// Base64 encoding table
+static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// Base64 encode function
+std::string base64_encode(const std::vector<uint8_t>& data) {
+    std::string result;
+    result.reserve(((data.size() + 2) / 3) * 4);
+    
+    for (size_t i = 0; i < data.size(); i += 3) {
+        uint32_t n = static_cast<uint32_t>(data[i]) << 16;
+        if (i + 1 < data.size()) n |= static_cast<uint32_t>(data[i + 1]) << 8;
+        if (i + 2 < data.size()) n |= static_cast<uint32_t>(data[i + 2]);
+        
+        result += base64_chars[(n >> 18) & 0x3F];
+        result += base64_chars[(n >> 12) & 0x3F];
+        result += (i + 1 < data.size()) ? base64_chars[(n >> 6) & 0x3F] : '=';
+        result += (i + 2 < data.size()) ? base64_chars[n & 0x3F] : '=';
+    }
+    
+    return result;
+}
+
+// Artwork cache structure
+struct ArtworkCache {
+    std::string trackKey;      // title + artist combined
+    std::string base64Data;    // cached base64 artwork
+    bool sentForCurrentTrack;  // whether we've sent artwork for this track
+    std::mutex mutex;
+    
+    ArtworkCache() : sentForCurrentTrack(false) {}
+};
+
+static ArtworkCache g_artworkCache;
 
 // Format duration from seconds to mm:ss format
 std::string format_duration(double seconds) {
@@ -426,26 +463,78 @@ extern "C" {
                     // Update position tracker
                     auto [current_position, total_duration] = global_tracker.update_from_timeline(timeline, playback_status);
                     
+                    // Get title and artist
+                    std::string title = winrt::to_string(info.Title());
+                    std::string artist = winrt::to_string(info.Artist());
+                    std::string trackKey = title + "|" + artist;
+                    
                     // Create result JSON
                     json result;
-                    result["title"] = winrt::to_string(info.Title());
-                    result["artist"] = winrt::to_string(info.Artist());
+                    result["title"] = title;
+                    result["artist"] = artist;
                     result["duration"] = format_duration(total_duration);
                     result["current_position"] = format_duration(current_position);
                     result["raw_duration_seconds"] = total_duration;
                     result["raw_position_seconds"] = current_position;
                     result["playback_status"] = playback_status;
                     
-                    // Try to get thumbnail/artwork URL if available
-                    try {
-                        auto thumbnail = info.Thumbnail();
-                        if (thumbnail) {
-                            // For Windows, we can get the thumbnail reference but converting to URL is complex
-                            // Mark as having artwork available - client can request it separately if needed
+                    // Handle artwork - only send on track change
+                    {
+                        std::lock_guard<std::mutex> lock(g_artworkCache.mutex);
+                        
+                        // If stopped or closed, send null and clear cache
+                        if (playback_status == "Stopped" || playback_status == "Closed") {
                             result["artwork"] = nullptr;
+                            g_artworkCache.trackKey = "";
+                            g_artworkCache.base64Data = "";
+                            g_artworkCache.sentForCurrentTrack = false;
                         }
-                    } catch (...) {
-                        // Thumbnail not available, skip
+                        // Check if track changed
+                        else if (trackKey != g_artworkCache.trackKey) {
+                            // New track - fetch artwork
+                            g_artworkCache.trackKey = trackKey;
+                            g_artworkCache.sentForCurrentTrack = false;
+                            g_artworkCache.base64Data = "";
+                            
+                            try {
+                                auto thumbnail = info.Thumbnail();
+                                if (thumbnail) {
+                                    // Open the stream and read the thumbnail
+                                    auto streamRef = thumbnail.OpenReadAsync().get();
+                                    auto size = static_cast<uint32_t>(streamRef.Size());
+                                    
+                                    if (size > 0 && size < 10 * 1024 * 1024) { // Max 10MB
+                                        Buffer buffer(size);
+                                        auto bytesRead = streamRef.ReadAsync(buffer, size, InputStreamOptions::None).get();
+                                        
+                                        // Copy to vector
+                                        std::vector<uint8_t> imageData(bytesRead.Length());
+                                        memcpy(imageData.data(), bytesRead.data(), bytesRead.Length());
+                                        
+                                        // Get content type
+                                        std::string contentType = winrt::to_string(streamRef.ContentType());
+                                        if (contentType.empty()) contentType = "image/png";
+                                        
+                                        // Encode to base64 data URL
+                                        g_artworkCache.base64Data = "data:" + contentType + ";base64," + base64_encode(imageData);
+                                    }
+                                    streamRef.Close();
+                                }
+                            } catch (...) {
+                                // Thumbnail fetch failed, leave empty
+                                g_artworkCache.base64Data = "";
+                            }
+                            
+                            // Send artwork on track change (even if empty/null)
+                            if (!g_artworkCache.base64Data.empty()) {
+                                result["artwork"] = g_artworkCache.base64Data;
+                            } else {
+                                result["artwork"] = nullptr;
+                            }
+                            g_artworkCache.sentForCurrentTrack = true;
+                        }
+                        // Same track - don't include artwork field (omit it entirely)
+                        // The client should keep showing the last received artwork
                     }
                     
                     return result;
