@@ -48,8 +48,8 @@ export class CommandService extends Singleton {
 		if (fn === 'nextTrack') {
 			return this.nextTrack();
 		}
-		if (fn === 'previousTrack') {
-			return this.previousTrack();
+		if (fn === 'prevTrack') {
+			return this.prevTrack();
 		}
 		if (fn === 'seekTo') {
 			const position = args?.position as string;
@@ -129,7 +129,7 @@ export class CommandService extends Singleton {
 		}
 	}
 
-	private previousTrack(): Result<boolean, CommandError> {
+	private prevTrack(): Result<boolean, CommandError> {
 		try {
 			mediaControlLib.symbols.previousTrack();
 			return Result.ok(true);

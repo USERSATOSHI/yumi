@@ -151,7 +151,7 @@ export class WebSocketClient extends Singleton {
 				hash: this.device.hash,
 				type: this.device.type,
 				name: this.device.name,
-				identifier: this.device.hash, // Using hash as identifier
+				identifier: env.YUMI_LINK_IDENTIFIER!,
 			},
 		};
 
