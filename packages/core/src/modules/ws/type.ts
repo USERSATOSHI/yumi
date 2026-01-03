@@ -6,6 +6,7 @@ export enum WSType {
 	Control = "control",
 	Ack = "ack",
 	Heartbeat = "heartbeat",
+	DeviceState = "deviceState",
 }
 
 export type DeviceWSData = {
@@ -30,6 +31,15 @@ export type MusicWSData = {
 	}
 }
 
+export type DeviceStateWSData = {
+	type: WSType.DeviceState;
+	data: {
+		volume: number;
+		brightness: number;
+		hash: string;
+	}
+}
+
 export type ControlWSData = {
 	type: WSType.Control;
 	data: {
@@ -50,4 +60,4 @@ export type HeartbeatWSData = {
 	}
 }
 
-export type WSData = DeviceWSData | MusicWSData | ControlWSData | AckWSData | HeartbeatWSData;
+export type WSData = DeviceWSData | MusicWSData | ControlWSData | AckWSData | HeartbeatWSData | DeviceStateWSData;

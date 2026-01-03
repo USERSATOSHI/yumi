@@ -40,8 +40,10 @@ export const mediaControlLib = dlopen(getLibraryPath('media_control'), {
  * Device control FFI bindings
  */
 export const deviceControl = dlopen(getLibraryPath('device_control'), {
+	getVolume: { args: [], returns: FFIType.f32 },
 	volume: { args: [FFIType.f32], returns: FFIType.void },
 	mute: { args: [FFIType.bool], returns: FFIType.void },
+	getBrightness: { args: [], returns: FFIType.i32 },
 	brightness: { args: [FFIType.i32], returns: FFIType.void },
 	lock: { args: [], returns: FFIType.void },
 	sleep: { args: [], returns: FFIType.void },

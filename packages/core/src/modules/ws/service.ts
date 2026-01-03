@@ -1,7 +1,7 @@
 import { safe, type ErrorBase, type Result } from "@yumi/results";
 import type { ElysiaWS } from "elysia/ws";
 import { logger, wslog } from "../../integrations/logger/index.js";
-import { WSType, type AckWSData, type ControlWSData, type DeviceWSData, type HeartbeatWSData, type MusicWSData, type WSData } from "./type.js";
+import { WSType, type AckWSData, type ControlWSData, type DeviceWSData, type DeviceStateWSData, type HeartbeatWSData, type MusicWSData, type WSData } from "./type.js";
 import { devicePool, DeviceType } from "../../pool/devices/index.js";
 import { statDB } from "../../db/index.js";
 import { executeCommand, relayCommand } from "../../command/handler.js";
@@ -36,6 +36,8 @@ export abstract class Websocket {
 				return this.#handleControl(ws, data);
 			case WSType.Heartbeat:
 				return this.#handleHeartbeat(ws, data);
+			case WSType.DeviceState:
+				return this.#handleDeviceState(ws, data);
 			default:
 				wslog.warn(`Unknown websocket message type: ${(data as any).type}`);
 		}
@@ -68,6 +70,21 @@ export abstract class Websocket {
 
 		// forward the music update to decks
 		wslog.withMetrics({ duration: end() }).info(`Music update received for device ${data.data.hash}: ${data.data.title} by ${data.data.artist}`);
+		ws.publish('deck', JSON.stringify(data));
+	}
+
+	static async #handleDeviceState(ws: ElysiaWS, data: DeviceStateWSData): Promise<void> {
+		const end = wslog.time();
+		
+		const deviceResult = devicePool.get(ws.id);
+		if (deviceResult.isErr()) {
+			wslog.withMetrics({ duration: end() }).warn(`Device not found in pool for device state: ${ws.id}`);
+			ws.close(1000, 'Device not registered');
+			return;
+		}
+
+		// forward the device state to decks
+		wslog.withMetrics({ duration: end() }).info(`Device state received for ${data.data.hash}: vol=${data.data.volume}% brightness=${data.data.brightness}%`);
 		ws.publish('deck', JSON.stringify(data));
 	}
 

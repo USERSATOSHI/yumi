@@ -21,6 +21,7 @@ enum WSType {
 	Control = 'control',
 	Ack = 'ack',
 	Heartbeat = 'heartbeat',
+	DeviceState = 'deviceState',
 }
 
 type DeviceWSData = {
@@ -61,11 +62,20 @@ type HeartbeatWSData = {
 	};
 };
 
+type DeviceStateWSData = {
+	type: WSType.DeviceState;
+	data: {
+		volume: number;
+		brightness: number;
+		hash: string;
+	};
+};
+
 type AckWSData = {
 	type: WSType.Ack;
 };
 
-type WSData = DeviceWSData | MusicWSData | ControlWSData | AckWSData | HeartbeatWSData;
+type WSData = DeviceWSData | MusicWSData | ControlWSData | AckWSData | HeartbeatWSData | DeviceStateWSData;
 
 export class WebSocketClient extends Singleton {
 	private ws: WebSocket | null = null;
@@ -74,6 +84,7 @@ export class WebSocketClient extends Singleton {
 	private reconnectTimer: Timer | null = null;
 	private heartbeatInterval: Timer | null = null;
 	private musicUpdateInterval: Timer | null = null;
+	private deviceStateInterval: Timer | null = null;
 	private serverUrl: string;
 	private isConnected = false;
 
@@ -120,6 +131,8 @@ export class WebSocketClient extends Singleton {
 				this.#registerDevice();
 				this.#startHeartbeat();
 				this.#startMusicUpdates();
+				this.#sendDeviceState(); // Send initial state
+				this.#startDeviceStateUpdates();
 			};
 
 			this.ws.onmessage = (event) => {
@@ -201,6 +214,33 @@ export class WebSocketClient extends Singleton {
 		}, 1000);
 	}
 
+	#sendDeviceState(): void {
+		if (!this.device || !this.isConnected) return;
+
+		const stateResult = this.commandService.getDeviceState();
+		if (stateResult.isErr()) return;
+
+		const state = stateResult.unwrap()!;
+
+		const message: DeviceStateWSData = {
+			type: WSType.DeviceState,
+			data: {
+				volume: state.volume,
+				brightness: state.brightness,
+				hash: this.device.hash,
+			},
+		};
+
+		this.#send(message);
+	}
+
+	#startDeviceStateUpdates(): void {
+		// Send device state updates every 10 seconds
+		this.deviceStateInterval = setInterval(() => {
+			this.#sendDeviceState();
+		}, 10000);
+	}
+
 	async #handleMessage(data: string | Buffer): Promise<void> {
 		try {
 			const message: WSData = JSON.parse(data.toString());
@@ -251,6 +291,11 @@ export class WebSocketClient extends Singleton {
 		if (this.musicUpdateInterval) {
 			clearInterval(this.musicUpdateInterval);
 			this.musicUpdateInterval = null;
+		}
+
+		if (this.deviceStateInterval) {
+			clearInterval(this.deviceStateInterval);
+			this.deviceStateInterval = null;
 		}
 
 		if (this.reconnectTimer) {

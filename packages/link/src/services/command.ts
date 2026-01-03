@@ -96,6 +96,9 @@ export class CommandService extends Singleton {
 		if (fn === 'restart') {
 			return this.restart();
 		}
+		if (fn === 'getDeviceState') {
+			return this.getDeviceState();
+		}
 
 		return Result.err(CommandError.InvalidCommand(fn));
 	}
@@ -192,6 +195,16 @@ export class CommandService extends Singleton {
 	}
 
 	// ─── Device Control ──────────────────────────────────────────────────────
+
+	public getDeviceState(): Result<{ volume: number; brightness: number }, CommandError> {
+		try {
+			const volume = Math.round(deviceControl.symbols.getVolume() * 100);
+			const brightness = deviceControl.symbols.getBrightness();
+			return Result.ok({ volume, brightness });
+		} catch (error) {
+			return Result.err(CommandError.CommandExecutionFailed('getDeviceState'));
+		}
+	}
 
 	private setVolume(volume: number): Result<boolean, CommandError> {
 		try {

@@ -34,6 +34,40 @@ private:
 #endif
 
 // === VOLUME ===
+DEVICECONTROL_API float getVolume() {
+#ifdef _WIN32
+    ComInitializer comInit;
+    float level = 0.0f;
+
+    IMMDeviceEnumerator* pEnumerator = nullptr;
+    IMMDevice* pDevice = nullptr;
+    IAudioEndpointVolume* pEndpointVolume = nullptr;
+
+    if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                                   __uuidof(IMMDeviceEnumerator), (void**)&pEnumerator)) &&
+        SUCCEEDED(pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice)) &&
+        SUCCEEDED(pDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, (void**)&pEndpointVolume))) {
+        pEndpointVolume->GetMasterVolumeLevelScalar(&level);
+    }
+
+    if (pEndpointVolume) pEndpointVolume->Release();
+    if (pDevice) pDevice->Release();
+    if (pEnumerator) pEnumerator->Release();
+    return level;
+#else
+    // Parse pactl output to get volume
+    FILE* pipe = popen("pactl get-sink-volume @DEFAULT_SINK@ | grep -oP '\\d+(?=%)' | head -1", "r");
+    if (!pipe) return 0.5f;
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        pclose(pipe);
+        return std::stof(buffer) / 100.0f;
+    }
+    pclose(pipe);
+    return 0.5f;
+#endif
+}
+
 DEVICECONTROL_API void volume(float level) {
 #ifdef _WIN32
     ComInitializer comInit;
@@ -83,6 +117,32 @@ DEVICECONTROL_API void mute(bool shouldMute) {
 }
 
 // === BRIGHTNESS ===
+DEVICECONTROL_API int getBrightness() {
+#ifdef _WIN32
+    // Use PowerShell to get current brightness
+    FILE* pipe = _popen("powershell.exe -Command \"(Get-WmiObject -Namespace root\\wmi -Class WmiMonitorBrightness).CurrentBrightness\"", "r");
+    if (!pipe) return 50;
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        _pclose(pipe);
+        return std::stoi(buffer);
+    }
+    _pclose(pipe);
+    return 50;
+#else
+    // Parse brightnessctl output
+    FILE* pipe = popen("brightnessctl -m | cut -d',' -f4 | tr -d '%'", "r");
+    if (!pipe) return 50;
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        pclose(pipe);
+        return std::stoi(buffer);
+    }
+    pclose(pipe);
+    return 50;
+#endif
+}
+
 DEVICECONTROL_API void brightness(int level) {
 #ifdef _WIN32
     std::wstring command = L"powershell.exe -Command \"(Get-WmiObject -Namespace root\\wmi -Class WmiMonitorBrightnessMethods).WmiSetBrightness(0," + std::to_wstring(level) + L")\"";
