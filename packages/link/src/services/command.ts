@@ -66,14 +66,14 @@ export class CommandService extends Singleton {
 		}
 
 		// Device control commands
-		if (fn === 'setVolume') {
+		if (fn === 'volume') {
 			const volume = args?.volume as number;
 			if (typeof volume !== 'number') {
 				return Result.err(CommandError.InvalidCommand('setVolume requires volume number'));
 			}
 			return this.setVolume(volume);
 		}
-		if (fn === 'setBrightness') {
+		if (fn === 'brightness') {
 			const brightness = args?.brightness as number;
 			if (typeof brightness !== 'number') {
 				return Result.err(CommandError.InvalidCommand('setBrightness requires brightness number'));
