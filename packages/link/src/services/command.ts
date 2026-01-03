@@ -71,10 +71,10 @@ export class CommandService extends Singleton {
 			if (typeof volume !== 'number') {
 				return Result.err(CommandError.InvalidCommand('setVolume requires volume number'));
 			}
-			return this.setVolume(volume);
+			return this.setVolume(volume*100);
 		}
 		if (fn === 'brightness') {
-			const brightness = args?.brightness as number;
+			const brightness = args?.level as number;
 			if (typeof brightness !== 'number') {
 				return Result.err(CommandError.InvalidCommand('setBrightness requires brightness number'));
 			}
