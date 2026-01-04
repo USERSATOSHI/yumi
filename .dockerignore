@@ -40,7 +40,7 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Other packages not needed at runtime
+# Other packages not needed at runtime for core
 packages/deck
 packages/hotword
 packages/link
@@ -49,3 +49,7 @@ packages/link
 *.tmp
 *.temp
 .cache
+
+# Python venv
+packages/hotword/yumi
+__pycache__

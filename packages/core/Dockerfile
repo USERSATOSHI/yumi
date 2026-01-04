@@ -1,6 +1,7 @@
 # ============================================
 # Yumi Core - Dockerfile for Komodo Build
 # ============================================
+# Build from yumi root: docker build -f packages/core/Dockerfile -t yumi-core .
 
 FROM oven/bun:1.3 AS base
 WORKDIR /app
@@ -9,6 +10,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     python3 \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================
@@ -17,10 +19,11 @@ RUN apt-get update && apt-get install -y \
 FROM base AS deps
 
 # Copy workspace configuration
-COPY package.json bun.lock* bunfig.toml ./
+COPY package.json bun.lock* ./
+COPY bunfig.toml* ./
 COPY tsconfig.base.json tsconfig.json ./
 
-# Copy all workspace packages (needed for workspace:* resolution)
+# Copy all workspace packages package.json files
 COPY packages/core/package.json ./packages/core/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/patterns/package.json ./packages/patterns/
@@ -30,27 +33,30 @@ COPY packages/tools/package.json ./packages/tools/
 COPY packages/vectordb/package.json ./packages/vectordb/
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile || bun install
 
 # ============================================
 # Build stage
 # ============================================
-FROM base AS builder
+FROM deps AS builder
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/*/node_modules ./packages/
-
-# Copy all source files
-COPY . .
-
-# Type check (optional, can be removed for faster builds)
-# RUN cd packages/core && bun run typecheck
+# Copy all source files for required packages
+COPY packages/core ./packages/core
+COPY packages/logger ./packages/logger
+COPY packages/patterns ./packages/patterns
+COPY packages/results ./packages/results
+COPY packages/stats ./packages/stats
+COPY packages/tools ./packages/tools
+COPY packages/vectordb ./packages/vectordb
 
 # ============================================
 # Production stage
 # ============================================
 FROM oven/bun:1.3-slim AS runner
 WORKDIR /app
+
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 yumi && \
