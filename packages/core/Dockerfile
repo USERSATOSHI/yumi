@@ -35,7 +35,7 @@ RUN bun install
 COPY packages ./packages
 
 # Build ONLY core (adjust if name differs)
-RUN bun run --filter ./packages/core build
+bun run --cwd packages/core build
 
 ############################
 # Runtime
