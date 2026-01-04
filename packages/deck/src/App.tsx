@@ -133,6 +133,13 @@ function App() {
         <Canvas
           camera={{ position: [0, 1, 6], fov: 50 }}
           style={{ position: 'fixed', inset: 0, zIndex: 0 }}
+          gl={{
+            precision: 'highp',           // Force high precision to prevent face deformation on low-end GPUs
+            powerPreference: 'default',   // Let browser decide power/performance tradeoff
+            antialias: true,
+            alpha: false,
+          }}
+          dpr={[1, 1.5]}                  // Cap pixel ratio to reduce strain on low-end devices
         >
           <RoomBackground />
           <ambientLight intensity={1} />

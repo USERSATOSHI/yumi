@@ -111,7 +111,10 @@ export default function Yumi({ position = [0, -6.5, 2] }: any) {
 	useEffect(() => {
 		let mounted = true;
 		const loader = new GLTFLoader();
-		loader.register((p: GLTFParser) => new VRMLoaderPlugin(p));
+		loader.register((p: GLTFParser) => new VRMLoaderPlugin(p, {
+			// Use primitive bone mapping for better compatibility on low-end devices
+			autoUpdateHumanBones: true,
+		}));
 
 		loader.load(
 			'/models/yumi1.vrm',
