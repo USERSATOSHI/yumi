@@ -29,7 +29,7 @@ COPY packages/tools/package.json packages/tools/
 COPY packages/vectordb/package.json packages/vectordb/
 
 # Full install — DO NOT fight Bun
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy sources
 COPY packages ./packages
