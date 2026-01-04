@@ -1,9 +1,9 @@
 # ============================================
-# Yumi Core — Bun TS Runtime (Canonical)
+# Yumi Core — Bun TS Runtime (Correct)
 # ============================================
 
 ############################
-# Builder (deps only)
+# Builder (deps + sources)
 ############################
 FROM oven/bun:1.3-slim AS builder
 WORKDIR /app
@@ -17,6 +17,7 @@ COPY package.json bun.lock* ./
 COPY bunfig.toml* ./
 COPY tsconfig.base.json tsconfig.json ./
 
+# Workspace manifests
 COPY packages/core/package.json packages/core/
 COPY packages/logger/package.json packages/logger/
 COPY packages/patterns/package.json packages/patterns/
@@ -25,7 +26,12 @@ COPY packages/stats/package.json packages/stats/
 COPY packages/tools/package.json packages/tools/
 COPY packages/vectordb/package.json packages/vectordb/
 
+# Install deps
 RUN bun install
+
+# ✅ THIS WAS MISSING
+# Copy all workspace source code
+COPY packages ./packages
 
 ############################
 # Runtime
@@ -39,7 +45,7 @@ RUN apt-get update && apt-get install -y \
     groupadd --system --gid 1001 yumi && \
     useradd --system --uid 1001 --gid 1001 --no-create-home yumi
 
-# Copy node_modules AND workspaces from builder
+# Copy deps + sources from builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
 COPY package.json ./
