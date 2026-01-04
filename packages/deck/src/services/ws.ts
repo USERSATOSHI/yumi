@@ -4,8 +4,10 @@ type MessageHandler = (data: WSData) => void;
 type ConnectionHandler = () => void;
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'wss://yumi.home.usersatoshi.in/api/ws';
-const DEVICE_IDENTIFIER = "67ccdf6888bd2d7c8bed7d7219ca42529ef4f37007e510f84b5dfbec773e6f151daa1e4a013a0e622a735dcdb67eeb47b697391946349f035c97cc843902d448"
+const DEVICE_IDENTIFIER = import.meta.env.VITE_YUMI_DECK_IDENTIFIER || "67ccdf6888bd2d7c8bed7d7219ca42529ef4f37007e510f84b5dfbec773e6f151daa1e4a013a0e622a735dcdb67eeb47b697391946349f035c97cc843902d448";
 const DEVICE_NAME = import.meta.env.VITE_YUMI_DECK_NAME || 'Yumi Deck';
+// Use unified hash from env, or fall back to per-browser localStorage
+const UNIFIED_HASH = '13f5f011-83f3-48b7-9bc6-1cd54ea7f873'
 const STORAGE_KEY = 'yumi_deck_hash';
 
 class WebSocketService {
@@ -19,14 +21,14 @@ class WebSocketService {
 	private _deviceHash: string;
 
 	constructor() {
-		// Get or generate a persistent hash for this deck instance
-		this._deviceHash = this.getOrCreateHash();
+		// Use unified hash if set, otherwise fall back to per-browser hash
+		this._deviceHash = UNIFIED_HASH || this.getOrCreateHash();
 	}
 
 	private getOrCreateHash(): string {
 		let hash = localStorage.getItem(STORAGE_KEY);
 		if (!hash) {
-			// Generate hash from identifier + random suffix (only once)
+			// Generate hash from identifier + random suffix (only once per browser)
 			hash = `deck-${DEVICE_IDENTIFIER.slice(0, 16)}-${Date.now().toString(36)}`;
 			localStorage.setItem(STORAGE_KEY, hash);
 		}
