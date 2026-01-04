@@ -1,5 +1,4 @@
 import './index.css';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import Star from '../Star/index.tsx';
 export default function FancyText({
 	text,
