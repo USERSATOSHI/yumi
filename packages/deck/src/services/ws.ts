@@ -3,7 +3,7 @@ import { WSType, DeviceType, type WSData } from '../types/ws';
 type MessageHandler = (data: WSData) => void;
 type ConnectionHandler = () => void;
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:11000/api/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 'wss://yumi.home.usersatoshi.in/api/ws';
 const DEVICE_IDENTIFIER = "67ccdf6888bd2d7c8bed7d7219ca42529ef4f37007e510f84b5dfbec773e6f151daa1e4a013a0e622a735dcdb67eeb47b697391946349f035c97cc843902d448"
 const DEVICE_NAME = import.meta.env.VITE_YUMI_DECK_NAME || 'Yumi Deck';
 const STORAGE_KEY = 'yumi_deck_hash';
