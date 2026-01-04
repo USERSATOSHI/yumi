@@ -40,7 +40,6 @@ npm-debug.log*
 Thumbs.db
 
 # Packages not needed at runtime for core
-packages/deck
 packages/hotword
 packages/link
 
