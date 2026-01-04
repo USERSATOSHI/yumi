@@ -4,7 +4,6 @@ node_modules
 
 # Build outputs
 dist
-build
 *.tsbuildinfo
 
 # Development files
@@ -20,7 +19,7 @@ build
 *.swo
 
 # Test files
-tests
+**/tests
 **/*.test.ts
 **/*.spec.ts
 coverage
@@ -40,7 +39,7 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Other packages not needed at runtime for core
+# Packages not needed at runtime for core
 packages/deck
 packages/hotword
 packages/link
@@ -53,3 +52,7 @@ packages/link
 # Python venv
 packages/hotword/yumi
 __pycache__
+
+# Keep model files
+!packages/vectordb/src/model
+!packages/vectordb/src/models
