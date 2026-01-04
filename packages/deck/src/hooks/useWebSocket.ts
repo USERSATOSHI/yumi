@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { wsService } from '../services/ws';
-import { WSType, type WSData, type MusicWSData, type DeviceStateWSData } from '../types/ws';
+import { WSType, type WSData, type MusicWSData, type DeviceStateWSData, type SpeakWSData } from '../types/ws';
 
 // Hook for WebSocket connection status
 export function useWebSocket() {
@@ -179,4 +179,40 @@ export function useCommand() {
 	}, []);
 
 	return { loading, execute, executeOnLinks };
+}
+
+// Hook for handling incoming Speak messages (reminders, notifications, etc.)
+// This will play audio and update transcript when server broadcasts speech
+export function useSpeakHandler() {
+	const [lastSpeak, setLastSpeak] = useState<SpeakWSData['data'] | null>(null);
+	const [isPlaying, setIsPlaying] = useState(false);
+
+	useEffect(() => {
+		const unsub = wsService.onMessage((data) => {
+			if (data.type === WSType.Speak) {
+				const speakData = (data as SpeakWSData).data;
+				setLastSpeak(speakData);
+				
+				// Play the audio
+				const audioEl = document.getElementById('yumi-audio') as HTMLAudioElement | null;
+				if (audioEl) {
+					audioEl.src = speakData.audio;
+					audioEl.load();
+					setIsPlaying(true);
+					audioEl.play().catch((err) => {
+						console.error('Failed to play reminder audio:', err);
+						setIsPlaying(false);
+					});
+					
+					audioEl.onended = () => {
+						setIsPlaying(false);
+					};
+				}
+			}
+		});
+
+		return unsub;
+	}, []);
+
+	return { lastSpeak, isPlaying };
 }

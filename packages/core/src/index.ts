@@ -5,6 +5,8 @@ import { env } from "bun";
 import {swagger } from '@elysiajs/swagger';
 import router from "./modules/index.js";
 import { serverHolder } from "./server.js";
+import { reminderPool } from "./pool/reminders/index.js";
+import { Speak } from "./modules/speak/service.js";
 
 
 const app = new Elysia()
@@ -16,5 +18,12 @@ const app = new Elysia()
 if (import.meta.main) {
 	app.listen(env.PORT ? Number(env.PORT) : 11000);
 	serverHolder.set(app.server);
+	
+	// Set up reminder callback to speak when reminders are due
+	reminderPool.setOnReminder(async (reminder) => {
+		console.log(`Reminder due: ${reminder.title}`);
+		await Speak.speakReminder(reminder);
+	});
+	
 	console.log(`Core module running at http://localhost:${app.server?.port}`);
 }

@@ -1,5 +1,6 @@
 import { status } from 'elysia';
 import { join } from 'path';
+import { env } from 'bun';
 
 import { createVectorDB, type Message, type VectorDB } from '@yumi/vectordb';
 
@@ -12,8 +13,13 @@ import { safe } from '@yumi/results';
 import { ollama } from '../../integrations/models/ollama/index.js';
 import voicevox from '../../integrations/voicevox/index.js';
 import { serverHolder } from '../../server.js';
+import { broadcastSpeak } from '../ws/broadcast.js';
+import type { Reminder } from '../../pool/reminders/index.js';
 
 const DEFAULT_AUDIO_PATH = process.env.YUMI_AUDIO_PATH ?? join(process.cwd(), '.yumi', 'audio.wav');
+const DEFAULT_REMINDER_AUDIO_PATH = process.env.YUMI_REMINDER_AUDIO_PATH ?? join(process.cwd(), '.yumi', 'reminder-audio.wav');
+const DEFAULT_SPEAKER = 46;
+const SERVER_URL = env.YUMI_SERVER_URL ?? 'yumi.home.usersatoshi.in';
 
 export abstract class Speak {
 	static #vectordb: VectorDB | null = null;
@@ -169,5 +175,60 @@ export abstract class Speak {
 
 		request.info(`Generated audio successfully for identifier: ${identifier}`);
 		return audioBuffer;
+	}
+
+	/**
+	 * Generate speech for a reminder and broadcast to all deck clients.
+	 * Simpler version of generate() that doesn't require a Request object.
+	 */
+	static async speakReminder(reminder: Reminder): Promise<boolean> {
+		const end = request.time();
+		
+		try {
+			// Generate a natural reminder message
+			const promptText = `You have a reminder: "${reminder.title}"${reminder.description ? `. ${reminder.description}` : ''}`;
+			
+			// Use Ollama to generate a natural response
+			const ollamaResult = await ollama.generate(promptText, [
+				{
+					role: 'system',
+					content: 'You are announcing a reminder to the user. Be brief, friendly, and helpful. Keep your response under 2 sentences.',
+				}
+			]);
+
+			let enText: string;
+			let jpText: string;
+
+			if (ollamaResult.isErr()) {
+				// Fallback to simple reminder text if Ollama fails
+				request.warn(`Ollama failed for reminder speech, using fallback: ${ollamaResult.unwrapErr()!.message}`);
+				enText = `Hey! Just a reminder: ${reminder.title}`;
+				jpText = `リマインダーです。${reminder.title}`;
+			} else {
+				const res = ollamaResult.unwrap()!;
+				enText = res.en;
+				jpText = res.jp;
+			}
+
+			// Generate audio using the existing private method
+			const audioBuffer = await this.#createAudio(jpText, DEFAULT_SPEAKER, 'reminder');
+			
+			// Save to reminder audio path
+			await Bun.write(DEFAULT_REMINDER_AUDIO_PATH, audioBuffer);
+
+			// Broadcast to all decks
+			const success = broadcastSpeak({
+				en: enText,
+				jp: jpText,
+				audio: `http://${SERVER_URL}/api/speak/reminder-audio`,
+				reason: 'reminder',
+			});
+
+			request.withMetrics({ duration: end() }).info(`Reminder speech generated and broadcasted: ${reminder.title}`);
+			return success;
+		} catch (error) {
+			request.withMetrics({ duration: end() }).error(`Failed to generate reminder speech: ${(error as Error).message}`);
+			return false;
+		}
 	}
 }

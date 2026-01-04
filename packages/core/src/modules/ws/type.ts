@@ -7,6 +7,7 @@ export enum WSType {
 	Ack = "ack",
 	Heartbeat = "heartbeat",
 	DeviceState = "deviceState",
+	Speak = "speak",
 }
 
 export type DeviceWSData = {
@@ -63,4 +64,14 @@ export type HeartbeatWSData = {
 	}
 }
 
-export type WSData = DeviceWSData | MusicWSData | ControlWSData | AckWSData | HeartbeatWSData | DeviceStateWSData;
+export type SpeakWSData = {
+	type: WSType.Speak;
+	data: {
+		en: string;      // English transcript
+		jp: string;      // Japanese text (for TTS)
+		audio: string;   // Audio URL
+		reason?: string; // Optional reason (e.g., "reminder")
+	}
+}
+
+export type WSData = DeviceWSData | MusicWSData | ControlWSData | AckWSData | HeartbeatWSData | DeviceStateWSData | SpeakWSData;

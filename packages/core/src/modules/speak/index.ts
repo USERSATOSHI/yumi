@@ -31,6 +31,16 @@ const speak = new Elysia({ prefix: '/speak' })
 				'Cache-Control': 'no-cache',
 			},
 		});
+	})
+	.get('/reminder-audio', async () => {
+		const audioFile = await Bun.file(join(dataDir, 'reminder-audio.wav')).arrayBuffer();
+		return new Response(audioFile, {
+			headers: {
+				'Content-Type': 'audio/wav',
+				'Content-Length': audioFile.byteLength.toString(),
+				'Cache-Control': 'no-cache',
+			},
+		});
 	});
 
 export default speak;

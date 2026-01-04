@@ -1,10 +1,13 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { SpeakApiResponse } from '../api';
+import { wsService } from '../services/ws';
+import { WSType, type SpeakWSData } from '../types/ws';
 
 interface YumiResponseState {
 	transcript: string | null;
 	transcriptJp: string | null;
 	isPlaying: boolean;
+	reason?: string; // e.g., 'reminder', 'response', etc.
 }
 
 interface YumiResponseContextType {
@@ -23,6 +26,57 @@ const YumiResponseContext = createContext<YumiResponseContextType | null>(null);
 
 export function YumiResponseProvider({ children }: { children: ReactNode }) {
 	const [state, setState] = useState<YumiResponseState>(defaultState);
+
+	// Listen for incoming Speak messages from WebSocket (e.g., reminders)
+	useEffect(() => {
+		const unsub = wsService.onMessage((data) => {
+			if (data.type === WSType.Speak) {
+				const speakData = (data as SpeakWSData).data;
+				console.log('Received speak message via WebSocket:', speakData);
+				
+				// Set the transcript with reason
+				setState({
+					transcript: speakData.en,
+					transcriptJp: speakData.jp,
+					isPlaying: true,
+					reason: speakData.reason,
+				});
+
+				// Play the audio
+				const audioEl = document.getElementById('yumi-audio') as HTMLAudioElement | null;
+				if (audioEl && speakData.audio) {
+					audioEl.pause();
+					audioEl.currentTime = 0;
+					audioEl.src = speakData.audio;
+					audioEl.loop = false;
+					
+					audioEl.onerror = (e) => {
+						console.error('WebSocket audio error:', e);
+						setState((prev) => ({ ...prev, isPlaying: false }));
+					};
+
+					audioEl.onended = () => {
+						console.log('WebSocket audio ended');
+						setState((prev) => ({ ...prev, isPlaying: false }));
+					};
+					
+					audioEl.load();
+					audioEl.play()
+						.then(() => console.log('WebSocket audio playing'))
+						.catch((e) => {
+							console.warn('WebSocket audio play blocked:', e);
+							const playOnClick = () => {
+								audioEl.play().catch(console.warn);
+								document.removeEventListener('click', playOnClick);
+							};
+							document.addEventListener('click', playOnClick, { once: true });
+						});
+				}
+			}
+		});
+
+		return unsub;
+	}, []);
 
 	const handleSpeakResponse = useCallback((response: SpeakApiResponse) => {
 		console.log('handleSpeakResponse called with:', response);

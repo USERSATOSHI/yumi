@@ -41,6 +41,14 @@ export class ReminderPool extends Singleton {
 		this.#startSweeper(interval);
 	}
 
+	/**
+	 * Set the callback to be called when a reminder is due.
+	 * This allows setting the callback after initialization (useful for avoiding circular imports).
+	 */
+	setOnReminder(callback: ReminderCallback | null): void {
+		this.#onReminder = callback;
+	}
+
 	#syncFromDB() {
 		const reminders = this.#db.getUpcomingReminders(1000);
 		for (const row of reminders) {
