@@ -1,14 +1,14 @@
 # ============================================
-# Yumi Core — Canonical Bun Production Image
+# Yumi Core — Bun TS Runtime (Canonical)
 # ============================================
 
 ############################
-# Builder
+# Builder (deps only)
 ############################
 FROM oven/bun:1.3-slim AS builder
 WORKDIR /app
 
-# Native deps for builds
+# Native deps for any modules that need them
 RUN apt-get update && apt-get install -y \
     python3 \
     build-essential \
@@ -19,7 +19,7 @@ COPY package.json bun.lock* ./
 COPY bunfig.toml* ./
 COPY tsconfig.base.json tsconfig.json ./
 
-# Workspace manifests (needed for lockfile resolution)
+# Workspace manifests (lockfile resolution)
 COPY packages/core/package.json packages/core/
 COPY packages/logger/package.json packages/logger/
 COPY packages/patterns/package.json packages/patterns/
@@ -31,32 +31,27 @@ COPY packages/vectordb/package.json packages/vectordb/
 # Full install — DO NOT fight Bun
 RUN bun install
 
-# Copy sources
-COPY packages ./packages
-
-# Build ONLY core (adjust if name differs)
-RUN bun run --cwd packages/core build
-
-
 ############################
 # Runtime
 ############################
 FROM oven/bun:1.3-slim AS runner
 WORKDIR /app
 
-# Runtime-only deps
+# Runtime-only OS deps
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/* && \
     groupadd --system --gid 1001 yumi && \
     useradd --system --uid 1001 --gid 1001 --no-create-home yumi
 
-# Copy ONLY runtime artifacts
+# Copy deps
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/core/package.json ./packages/core/
-COPY --from=builder /app/package.json ./
 
+# Copy ONLY source needed at runtime
+COPY packages ./packages
+COPY package.json ./
+
+# Runtime data dir
 RUN mkdir -p /app/packages/core/.yumi && \
     chown -R yumi:yumi /app
 
