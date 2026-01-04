@@ -58,6 +58,7 @@ USER yumi
 
 ENV NODE_ENV=production
 ENV PORT=11000
+ENV TZ=Asia/Kolkata
 
 EXPOSE 11000
 

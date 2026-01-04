@@ -13,6 +13,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=11000
+      - TZ=Asia/Kolkata  # Set timezone to IST for correct reminder times
       # Add your environment variables here
       # - OLLAMA_HOST=http://host.docker.internal:11434
       # - VOICEVOX_HOST=http://host.docker.internal:50021
