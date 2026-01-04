@@ -72,7 +72,7 @@ export function useMusicUpdates() {
 // Hook for music updates per device (tracks all devices)
 export function useDevicesMusic() {
 	const [musicByDevice, setMusicByDevice] = useState<Map<string, MusicWSData['data']>>(new Map());
-	const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:11000';
+	const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://yumi.home.usersatoshi.in';
 
 	useEffect(() => {
 		const unsub = wsService.onMessage((data) => {

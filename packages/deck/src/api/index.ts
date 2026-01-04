@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:11000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://yumi.home.usersatoshi.in';
 
 interface ApiResponse<T = unknown> {
 	success: boolean;
