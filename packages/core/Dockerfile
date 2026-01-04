@@ -55,12 +55,10 @@ COPY packages/vectordb ./packages/vectordb
 FROM oven/bun:1.3-slim AS runner
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user for security
-RUN addgroup --system --gid 1001 yumi && \
-    adduser --system --uid 1001 --gid 1001 yumi
+# Install curl for healthcheck and create non-root user
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* && \
+    groupadd --system --gid 1001 yumi && \
+    useradd --system --uid 1001 --gid 1001 --no-create-home yumi
 
 # Copy built application
 COPY --from=builder /app/node_modules ./node_modules

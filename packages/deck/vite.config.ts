@@ -10,4 +10,7 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+	allowedHosts: ['localhost', 'deck.yumi.home.usersatoshi.in'],
+  }
 })

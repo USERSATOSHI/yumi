@@ -1,0 +1,47 @@
+# Docker Compose for Yumi Deck
+# Usage: docker compose up -d
+
+services:
+  deck:
+    build:
+      context: ../..  # Root of yumi workspace
+      dockerfile: packages/deck/Dockerfile
+    container_name: yumi-deck
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      # These are build-time variables for Vite
+      # Set VITE_API_URL to point to your core server
+      - VITE_API_URL=https://yumi.home.usersatoshi.in
+    depends_on:
+      - core
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  core:
+    build:
+      context: ../..
+      dockerfile: packages/core/Dockerfile
+    container_name: yumi-core
+    restart: unless-stopped
+    ports:
+      - "11000:11000"
+    environment:
+      - NODE_ENV=production
+      - PORT=11000
+      # Add your environment variables
+      # - OLLAMA_HOST=http://host.docker.internal:11434
+      # - VOICEVOX_HOST=http://host.docker.internal:50021
+    volumes:
+      - yumi-data:/app/packages/core/.yumi
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  yumi-data:
+    driver: local
