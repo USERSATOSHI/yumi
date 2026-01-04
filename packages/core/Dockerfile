@@ -34,12 +34,9 @@ COPY packages/tools/package.json packages/tools/
 COPY packages/vectordb/package.json packages/vectordb/
 
 # Install all deps first (needed to resolve workspaces)
-RUN bun install --frozen-lockfile || \
-    bun install --no-save
+RUN bun install --production --frozen-lockfile || \
+    bun install --production --no-save
 
-
-# Remove dev deps → prod only
-RUN bun prune --production
 
 ############################
 # Runtime
