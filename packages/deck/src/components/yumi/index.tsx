@@ -124,6 +124,11 @@ export default function Yumi({ position = [0, -6.5, 2] }: any) {
 				const _vrm: VRM | null = gltf.userData?.vrm ?? null;
 				if (!_vrm) return;
 
+				// Optimize for low-end devices: remove unnecessary joints and vertices
+				VRMUtils.combineSkeletons(_vrm.scene);
+				VRMUtils.combineMorphs(_vrm);
+				VRMUtils.removeUnnecessaryVertices(_vrm.scene);
+
 				VRMUtils.rotateVRM0(_vrm);
 				_vrm.scene.scale.setScalar(1);
 
