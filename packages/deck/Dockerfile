@@ -1,5 +1,5 @@
 # ============================================
-# Yumi Deck — Frontend Dockerfile (Optimized)
+# Yumi Deck — Frontend Dockerfile (Simple)
 # ============================================
 
 ############################
@@ -8,14 +8,14 @@
 FROM oven/bun:1.3-slim AS builder
 WORKDIR /app
 
-# Workspace config (cache-friendly)
+# Workspace config
 COPY package.json bun.lock* ./
 COPY bunfig.toml* ./
 
 # Deck package manifest
 COPY packages/deck/package.json packages/deck/
 
-# Install deps (fail if lockfile is wrong)
+# Install dependencies (reproducible)
 RUN bun install
 
 # Copy deck source
@@ -30,17 +30,11 @@ RUN bun run build
 ############################
 FROM nginx:alpine AS runner
 
-# Remove default nginx config
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Custom nginx config
-COPY packages/deck/nginx.conf /etc/nginx/conf.d/default.conf
-
 # Copy built assets
 COPY --from=builder /app/packages/deck/dist /usr/share/nginx/html
 
 # OPTIONAL:
-# Only keep this if your build does NOT copy public/ into dist
+# Only use this if your build does NOT include public assets in dist
 # COPY --from=builder /app/packages/deck/public /usr/share/nginx/html
 
 EXPOSE 80
