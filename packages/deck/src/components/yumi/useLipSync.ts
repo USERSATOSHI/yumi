@@ -161,6 +161,15 @@ export function useLipSync() {
       const buffer = new Float32Array(analyser.fftSize);
 
       const tick = () => {
+        // Check if audio is paused or ended - reset to rest face
+        if (audioEl.paused || audioEl.ended) {
+          setViseme({ name: 'rest', value: 0 });
+          setAmplitude(0);
+          setPitch(null);
+          rafRef.current = requestAnimationFrame(tick);
+          return;
+        }
+
         analyser.getFloatTimeDomainData(buffer);
 
         let sum = 0;

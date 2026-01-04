@@ -322,6 +322,15 @@ export default function Yumi({ position = [0, -6.5, 2] }: any) {
 			if (!prevViseme.current) prevViseme.current = v;
 			const smooth = prevViseme.current.value * 0.7 + v.value * 0.3;
 
+			// Reset all mouth expressions first to prevent stuck expressions
+			safeSetExpr(vrm, VRMExpressionPresetName.Oh, 0);
+			safeSetExpr(vrm, VRMExpressionPresetName.Aa, 0);
+			safeSetExpr(vrm, VRMExpressionPresetName.Ih, 0);
+			safeSetExpr(vrm, VRMExpressionPresetName.Ee, 0);
+			safeSetExpr(vrm, VRMExpressionPresetName.Ou, 0);
+			safeSetExpr(vrm, VRMExpressionPresetName.Happy, 0);
+
+			// Apply the current viseme expression
 			if (v.name === 'open')
 				safeSetExpr(vrm, VRMExpressionPresetName.Oh, Math.min(0.6, smooth * 0.5));
 			else if (v.name === 'smile')
@@ -329,7 +338,7 @@ export default function Yumi({ position = [0, -6.5, 2] }: any) {
 			else if (v.name === 'narrow') safeSetExpr(vrm, VRMExpressionPresetName.Ih, smooth);
 			else if (v.name === 'closed')
 				safeSetExpr(vrm, VRMExpressionPresetName.Aa, smooth * 0.2);
-			else safeSetExpr(vrm, VRMExpressionPresetName.Neutral, 0);
+			// 'rest' - all expressions already reset to 0 above
 
 			prevViseme.current = { ...v, value: smooth };
 		}
