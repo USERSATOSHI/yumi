@@ -1,0 +1,34 @@
+# Docker Compose for Yumi Core
+# Usage: docker compose up -d
+
+services:
+  core:
+    build:
+      context: ../..  # Root of yumi workspace
+      dockerfile: packages/core/Dockerfile
+    container_name: yumi-core
+    restart: unless-stopped
+    ports:
+      - "11000:11000"
+    environment:
+      - NODE_ENV=production
+      - PORT=11000
+      # Add your environment variables here
+      # - OLLAMA_HOST=http://host.docker.internal:11434
+      # - VOICEVOX_HOST=http://host.docker.internal:50021
+    volumes:
+      # Persist SQLite databases and audio files
+      - yumi-data:/app/packages/core/.yumi
+    # For accessing host services (Ollama, Voicevox, etc.)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11000/api/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  yumi-data:
+    driver: local

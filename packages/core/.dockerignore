@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+build
+*.tsbuildinfo
+
+# Development files
+.git
+.gitignore
+*.md
+!README.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test files
+tests
+**/*.test.ts
+**/*.spec.ts
+coverage
+.nyc_output
+
+# Environment files (pass via docker run -e or compose)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Other packages not needed at runtime
+packages/deck
+packages/hotword
+packages/link
+
+# Temporary files
+*.tmp
+*.temp
+.cache
