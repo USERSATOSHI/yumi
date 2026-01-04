@@ -1,6 +1,6 @@
 import  { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useControls } from 'leva';
+import { useControls, Leva } from 'leva';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/Addons.js';
 import {
@@ -327,5 +327,10 @@ export default function Yumi({ position = [0, -6.5, 2] }: any) {
 		}
 	});
 
-	return <group ref={group} />;
+	return (
+		<>
+			<Leva hidden />
+			<group ref={group} />
+		</>
+	);
 }

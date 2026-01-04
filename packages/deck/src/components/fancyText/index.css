@@ -1,9 +1,8 @@
 .namestarContainer {
 	 padding: 32px;
+	 padding-top: 16px;
 	 position: relative;
 	 width: fit-content;
-	 /* transform: rotateZ(-5deg); */
-	 /* left: 10px; */
 	 font-family: 'Bonbon', cursive;
 }
  .namestarContainer .star1 {

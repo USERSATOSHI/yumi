@@ -59,7 +59,6 @@ CRITICAL RULES:
 		try {
 			const repaired = jsonrepair(response.message.content);
 			const parsed: Text = JSON.parse(repaired);
-			console.log('Ollama response parsed:', parsed);
 			logger.info(`Ollama generateResponse success`, { duration: end() });
 			return Result.ok(parsed);
 		} catch (e) {

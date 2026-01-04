@@ -26,6 +26,8 @@ IMPORTANT:
 - ANY question about current time, date, day, or comparing dates (e.g., "is today X") → call getCurrentTime
 - Questions about personal data (calendar, events, birthdays) → call relevant tool if available
 - If unsure whether you need real data, call the tool anyway
+- When calling media/device tools (playMedia, pauseMedia, stopMedia, setMediaVolume, etc.), you MUST use the actual device hash from the connected devices list - NEVER use placeholder values like "music_device_hash"
+- If only one device is connected, use that device's hash for any device-related request
 `;
 
 	async generate(
@@ -40,6 +42,8 @@ IMPORTANT:
 				: { role: 'system', content: 'no devices connected' },
 			{ role: 'user', content: message },
 		];
+
+		console.log('ToolCall#generate messages:', messages);
 
 		const responseResult = await safe(
 			ollama.chat({
@@ -70,17 +74,17 @@ IMPORTANT:
 		if (devices.length === 0) {
 			return {
 				role: 'system',
-				content: 'No devices are currently connected.',
+				content: 'No devices are currently connected. Cannot execute device/media commands.',
 			};
 		}
 
 		const deviceList = devices
-			.map((device) => `- Name: ${device.name}, Hash: ${device.hash}`)
+			.map((device) => `- Name: "${device.name}" → hash: "${device.hash}"`)
 			.join('\n');
 
 		return {
 			role: 'system',
-			content: `Connected devices:\n${deviceList}`,
+			content: `Connected devices (USE THESE EXACT HASHES for tool calls):\n${deviceList}`,
 		};
 	}
 }

@@ -11,6 +11,7 @@ import { executeCommand } from '../../command/handler.js';
 import { safe } from '@yumi/results';
 import { ollama } from '../../integrations/models/ollama/index.js';
 import voicevox from '../../integrations/voicevox/index.js';
+import { serverHolder } from '../../server.js';
 
 const DEFAULT_AUDIO_PATH = process.env.YUMI_AUDIO_PATH ?? join(process.cwd(), '.yumi', 'audio.wav');
 
@@ -128,11 +129,10 @@ export abstract class Speak {
 		}
 
 		const end = request.time();
-
 		const results: Record<string, any> = {};
 
 		for (const call of toolCalls) {
-			const { success, result } = await executeCommand(call.name, call.arguments || {}, 'server');
+			const { success, result } = await executeCommand(call.name, call.arguments || {}, 'server', serverHolder.get() as any);
 			if (!success) {
 				request.warn(`Tool ${call.name} execution failed`);
 			}

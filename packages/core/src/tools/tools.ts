@@ -1,38 +1,45 @@
 /**
  * Local Module Imports
  */
+import type Elysia from 'elysia';
+import { createControlCommand, createMediaCommand } from '../command/index.js';
 import ledfx, { type LedFx } from '../integrations/ledfx';
+import { devicePool } from '../pool/devices/index.js';
 import { reminderPool } from '../pool/reminders/index.js';
 import { todoPool } from '../pool/todos/index.js';
+import { type ElysiaWS } from 'elysia/ws';
 
 /**
  * Change the scene of a WLED light using LEDfx.
  *
  * This function changes the scene of a WLED light identified by its hash this allows for changing the visuals of room lighting.
  *
- * @param deviceHash - unique identifier of the device that is running the LEDfx instance
- * @param sceneName - name of the scene to change to
+ * @param params.deviceHash - unique identifier of the device that is running the LEDfx instance
+ * @param params.sceneName - name of the scene to change to
  * @returns Result<void, Error> - Result object indicating success or failure
  *
  * @example
  * ```ts
  * // Make the room a bit cozy
- * await changeLedFxScene("device-hash-123", 'cozy');
+ * await changeLedFxScene({ deviceHash: "device-hash-123", sceneName: 'cozy' });
  *
  * // Set a party mood
- * await changeLedFxScene("device-hash-123", 'party');
+ * await changeLedFxScene({ deviceHash: "device-hash-123", sceneName: 'party' });
  *
  * // time for work
- * await changeLedFxScene("device-hash-123", 'work');
+ * await changeLedFxScene({ deviceHash: "device-hash-123", sceneName: 'work' });
  *
  * // turn off the lights
- * await changeLedFxScene("device-hash-123", 'sleep');
+ * await changeLedFxScene({ deviceHash: "device-hash-123", sceneName: 'sleep' });
  * ```
  */
-export async function changeLedFxScene(
-	deviceHash: string,
-	sceneName: Parameters<LedFx['switch']>[1],
-): Promise<string> {
+export async function changeLedFxScene({
+	deviceHash,
+	sceneName,
+}: {
+	deviceHash: string;
+	sceneName: Parameters<LedFx['switch']>[1];
+}): Promise<string> {
 	const result = await ledfx.switch(deviceHash, sceneName);
 	return result.unwrap() || '';
 }
@@ -55,21 +62,25 @@ export function getCurrentTime(): string {
 /**
  * create a reminder message
  *
- * @param message - the reminder message
- * @param remindAt - time to remind in hh:mm format
- * @param repeat - optional repeat interval ('daily', 'weekly', 'monthly', 'yearly')
+ * @param params.message - the reminder message
+ * @param params.remindAt - time to remind in hh:mm format
+ * @param params.repeat - optional repeat interval ('daily', 'weekly', 'monthly', 'yearly')
  * @returns string - formatted reminder message
  *
  * @example
  * ```ts
- * addReminder("Meeting with team", "15:00");
+ * addReminder({ message: "Meeting with team", remindAt: "15:00" });
  * ```
  */
-export function addReminder(
-	message: string,
-	remindAt: string,
-	repeat?: 'daily' | 'weekly' | 'monthly' | 'yearly',
-) {
+export function addReminder({
+	message,
+	remindAt,
+	repeat,
+}: {
+	message: string;
+	remindAt: string;
+	repeat?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+}) {
 	const [hours, minutes] = remindAt.split(':').map(Number) as [number, number];
 	const now = new Date();
 	// check if time has already passed today
@@ -93,16 +104,16 @@ export function addReminder(
 /**
  * get upcoming reminders
  *
- * @param limit - number of upcoming reminders to retrieve
+ * @param params.limit - number of upcoming reminders to retrieve
  * @returns string - formatted list of upcoming reminders
  *
  * @example
  * ```ts
- * const reminders = getUpcomingReminders(5);
+ * const reminders = getUpcomingReminders({ limit: 5 });
  * console.log(reminders);
  * ```
  */
-export function getUpcomingReminders(limit: number = 5): string {
+export function getUpcomingReminders({ limit = 5 }: { limit?: number } = {}): string {
 	const reminders = reminderPool
 		.list()
 		.filter((r) => !r.completed)
@@ -124,15 +135,15 @@ export function getUpcomingReminders(limit: number = 5): string {
 /**
  * Delete a reminder
  *
- * @param title - title of the reminder to delete
+ * @param params.title - title of the reminder to delete
  * @returns string - result message
  *
  * @example
  * ```ts
- * deleteReminder("Meeting with team");
+ * deleteReminder({ title: "Meeting with team" });
  * ```
  */
-export function deleteReminder(title: string): string {
+export function deleteReminder({ title }: { title: string }): string {
 	const result = reminderPool.delete(title);
 	if (result.isErr()) {
 		return `Error deleting reminder: ${result.unwrapErr()!.message}`;
@@ -147,20 +158,23 @@ export function deleteReminder(title: string): string {
 /**
  * Create to-do list item
  *
- * @param task - the task description
- * @param priority - 'low' | 'medium' | 'high'
+ * @param params.task - the task description
+ * @param params.priority - 'low' | 'medium' | 'high'
  *
  * @return string - formatted to-do list item
  *
  * @example
  * ```ts
- * createTodoItem("Finish the report");
+ * createTodoItem({ task: "Finish the report" });
  * ```
  */
-export function createTodoItem(
-	task: string,
-	priority: 'low' | 'medium' | 'high' = 'medium',
-): string {
+export function createTodoItem({
+	task,
+	priority = 'medium',
+}: {
+	task: string;
+	priority?: 'low' | 'medium' | 'high';
+}): string {
 	const result = todoPool.add(task, { priority });
 
 	if (result.isErr()) {
@@ -174,16 +188,16 @@ export function createTodoItem(
 /**
  * Edit a to-do list item
  *
- * @param item - the original to-do list item
- * @param newTask - the new task description
+ * @param params.item - the original to-do list item
+ * @param params.newTask - the new task description
  * @returns string - formatted updated to-do list item
  *
  * @example
  * ```ts
- * editTodoItem("Finish the report", "Finish the annual report");
+ * editTodoItem({ item: "Finish the report", newTask: "Finish the annual report" });
  * ```
  */
-export function editTodoItem(item: string, newTask: string): string {
+export function editTodoItem({ item, newTask }: { item: string; newTask: string }): string {
 	const getResult = todoPool.get(item);
 	if (getResult.isErr()) {
 		return `Error finding to-do item: ${getResult.unwrapErr()!.message}`;
@@ -226,15 +240,15 @@ export function listTodoItems(): string {
 /**
  * Delete a to-do list item
  *
- * @param item - the to-do list item to delete
+ * @param params.item - the to-do list item to delete
  * @returns string - result message
  *
  * @example
  * ```ts
- * deleteTodoItem("Finish the report");
+ * deleteTodoItem({ item: "Finish the report" });
  * ```
  */
-export function deleteTodoItem(item: string): string {
+export function deleteTodoItem({ item }: { item: string }): string {
 	const result = todoPool.delete(item);
 	if (result.isErr()) {
 		return `Error deleting to-do item: ${result.unwrapErr()!.message}`;
@@ -245,10 +259,10 @@ export function deleteTodoItem(item: string): string {
 /**
  * Complete a to-do list item
  *
- * @param item - the to-do list item to complete
+ * @param params.item - the to-do list item to complete
  * @returns string - result message
  */
-export function completeTodoItem(item: string): string {
+export function completeTodoItem({ item }: { item: string }): string {
 	const result = todoPool.complete(item);
 	if (result.isErr()) {
 		return `Error completing to-do item: ${result.unwrapErr()!.message}`;
@@ -279,4 +293,134 @@ export function clearAllTodoItems(): string {
 		count++;
 	}
 	return `Cleared all ${count} to-do item(s).`;
+}
+
+// media controls
+
+/**
+ * Play media
+ *
+ * @param params.hash - device Hash
+ *
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function playMedia(this: ElysiaWS, { hash }: { hash: string }): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createMediaCommand('playMedia', {}, hash)));
+	return true;
+}
+
+/**
+ * Pause media
+ *
+ * @param params.hash - device Hash
+ *
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function pauseMedia(this: ElysiaWS, { hash }: { hash: string }): boolean {
+	if (!hash) {
+		return false;
+	}
+	
+	this.publish(hash, JSON.stringify(createMediaCommand('pauseMedia', {}, hash)));
+	return true;
+}
+
+/**
+ * Stop media
+ *
+ * @param params.hash - device Hash
+ *
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function stopMedia(this: ElysiaWS, { hash }: { hash: string }): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createMediaCommand('stop', {}, hash)));
+	return true;
+}
+
+/**
+ * Skip to next media track
+ *
+ * @param params.hash - device Hash
+ *
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function nextMediaTrack(this: ElysiaWS, { hash }: { hash: string }): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createMediaCommand('nextTrack', {}, hash)));
+	return true;
+}
+
+/**
+ * Skip to previous media track
+ *
+ * @param params.hash - device Hash
+ *
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function previousMediaTrack(this: ElysiaWS, { hash }: { hash: string }): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createMediaCommand('previousTrack', {}, hash)));
+	return true;
+}
+
+/**
+ * Set media volume
+ *
+ * @param params.hash - device Hash
+ * @param params.volume - volume level (0-100)
+ *
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function setMediaVolume(
+	this: Elysia['server'],
+	{ hash, volume }: { hash: string; volume: number },
+): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	console.log(this, this.publish)
+	this.publish(hash, JSON.stringify(createControlCommand('volume', { level: volume / 100 }, hash)));
+	return true;
+}	
+
+/**
+ * Mute media
+ *
+ * @param params.hash - device Hash
+ * @param params.muted - mute state
+ *
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function muteMedia(
+	this: ElysiaWS,
+	{ hash, muted }: { hash: string; muted: boolean },
+): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createControlCommand('mute', { muted }, hash)));
+	return true;
 }

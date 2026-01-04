@@ -1,0 +1,58 @@
+.transcript-container {
+	position: fixed;
+	bottom: 80px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 100;
+	max-width: 90%;
+	pointer-events: none;
+}
+
+.transcript-bubble {
+	background: rgba(0, 0, 0, 0.75);
+	backdrop-filter: blur(10px);
+	border-radius: 16px;
+	padding: 16px 24px;
+	color: white;
+	font-size: 1.1rem;
+	line-height: 1.5;
+	text-align: center;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	animation: fadeInUp 0.3s ease-out;
+}
+
+.transcript-bubble.fading {
+	animation: fadeOutDown 0.3s ease-out forwards;
+}
+
+.transcript-text-en {
+	font-weight: 500;
+}
+
+.transcript-text-jp {
+	font-size: 0.9rem;
+	color: rgba(255, 255, 255, 0.7);
+	margin-top: 8px;
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fadeOutDown {
+	from {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+}

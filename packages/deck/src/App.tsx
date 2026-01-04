@@ -7,11 +7,14 @@ import Yumi from './components/yumi';
 import React from 'react';
 import './App.css';
 import BottomMenu from './components/menu/index.tsx';
-import Control from './pages/Control.tsx';
-import Reminders from './pages/Reminders.tsx';
-import Todos from './pages/Todos.tsx';
-import Devices from './pages/Devices.tsx';
+import Control from './pages/Control/index.tsx';
+import Reminders from './pages/Reminders/index.tsx';
+import Todos from './pages/Todos/index.tsx';
+import Devices from './pages/Devices/index.tsx';
 import Home from './pages/Home/Home.tsx';
+import { ControlProvider } from './contexts/ControlContext.tsx';
+import { YumiResponseProvider } from './contexts/YumiResponseContext.tsx';
+import Transcript from './components/Transcript/index.tsx';
 
 // Menu order for direction logic
 const menuOrder = [
@@ -118,19 +121,10 @@ function RoomBackground() {
 }
 
 function App() {
-  // Audio play handler
-  const startAudio = async () => {
-    const a = document.getElementById('yumi-audio') as HTMLMediaElement | null;
-    if (!a) return;
-    try {
-      await a.play();
-    } catch (e) {
-      console.warn('Audio play blocked:', e);
-    }
-  };
-
   return (
     <BrowserRouter>
+      <YumiResponseProvider>
+      <ControlProvider>
       <main
         className="app"
         style={{ paddingBottom: 56, position: 'relative', overflow: 'hidden' }}
@@ -151,11 +145,11 @@ function App() {
           <Yumi />
         </Canvas>
 
-        {/* Global audio element and play button */}
-        <audio id="yumi-audio" src="/harvard.wav" crossOrigin="anonymous" loop controls></audio>
-        <div style={{ position: 'fixed', left: 12, top: 12, zIndex: 999 }}>
-          <button onClick={startAudio}>Play audio</button>
-        </div>
+        {/* Global audio element */}
+        <audio id="yumi-audio" crossOrigin="anonymous" controls hidden></audio>
+
+        {/* Transcript display */}
+        <Transcript />
 
         {/* App pages */}
         <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
@@ -163,6 +157,8 @@ function App() {
           <BottomMenu />
         </div>
       </main>
+      </ControlProvider>
+      </YumiResponseProvider>
     </BrowserRouter>
   );
 }

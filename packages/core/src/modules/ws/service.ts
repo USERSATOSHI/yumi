@@ -5,6 +5,7 @@ import { WSType, type AckWSData, type ControlWSData, type DeviceWSData, type Dev
 import { devicePool, DeviceType } from "../../pool/devices/index.js";
 import { statDB } from "../../db/index.js";
 import { executeCommand, relayCommand } from "../../command/handler.js";
+import { artworkCache } from "./artwork.js";
 
 export abstract class Websocket {
 	static async handle(ws: ElysiaWS, message: string): Promise<void> {
@@ -68,9 +69,33 @@ export abstract class Websocket {
 			return;
 		}
 
+		// Handle artwork caching - convert base64 to URL
+		const artworkUrl = artworkCache.set(
+			data.data.hash,
+			data.data.artwork,
+			data.data.title,
+			data.data.artist
+		);
+		
+		// Build the forwarded message
+		const forwardData: MusicWSData = {
+			type: WSType.Music,
+			data: {
+				...data.data,
+			}
+		};
+		
+		// Only include artwork field if we have a URL or need to clear
+		if (artworkUrl !== undefined) {
+			forwardData.data.artwork = artworkUrl;
+		} else {
+			// Don't include artwork field - deck will keep existing
+			delete forwardData.data.artwork;
+		}
+
 		// forward the music update to decks
 		wslog.withMetrics({ duration: end() }).info(`Music update received for device ${data.data.hash}: ${data.data.title} by ${data.data.artist}`);
-		ws.publish('deck', JSON.stringify(data));
+		ws.publish('deck', JSON.stringify(forwardData));
 	}
 
 	static async #handleDeviceState(ws: ElysiaWS, data: DeviceStateWSData): Promise<void> {
@@ -104,7 +129,7 @@ export abstract class Websocket {
 			if (data.data.hash === DeviceType.Link) {
 				// broadcast to all links
 				relayCommand(data.data.fn, device.hash, DeviceType.Link);
-				ws.publish(DeviceType.Link, JSON.stringify(data));
+				ws.publish(device.hash, JSON.stringify(data));
 				wslog.withMetrics({ duration: end() }).info(`Control command broadcasted to links from deck ${device.hash}: ${data.data.fn}`);
 			} else {
 				relayCommand(data.data.fn, device.hash, data.data.hash);
@@ -112,7 +137,7 @@ export abstract class Websocket {
 				wslog.withMetrics({ duration: end() }).info(`Control command sent to device ${data.data.hash} from deck ${device.hash}: ${data.data.fn}`);
 			}
 		} else if (device.type === DeviceType.Link) {
-			await executeCommand(data.data.fn, data.data.args || {}, device.hash);
+			await executeCommand(data.data.fn, data.data.args || {}, device.hash, ws);
 			wslog.withMetrics({ duration: end() }).info(`Control command sent to server from link ${device.hash}: ${data.data.fn}`);
 		}
 	}

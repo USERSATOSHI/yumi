@@ -1,3 +1,4 @@
+import { WSType } from "../modules/ws/type.js";
 import { type ControlCommandFnMap, type MediaCommandFnMap, type ControlCommand, type MediaCommand, CommandType } from "./type";
 
 export function createControlCommand<K extends keyof ControlCommandFnMap>(
@@ -17,7 +18,7 @@ export function createMediaCommand<K extends keyof MediaCommandFnMap>(
 	hash: string
 ): MediaCommand<K> {
 	return {
-		type: CommandType.Media,
+		type: WSType.Control,
 		data: { fn, args, hash }
 	};
 }

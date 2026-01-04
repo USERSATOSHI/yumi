@@ -1,4 +1,6 @@
 import FancyText from '../../components/fancyText/index.tsx';
+import VoiceIndicator from '../../components/VoiceIndicator/index.tsx';
+import StatsMenu from '../../components/StatsMenu/index.tsx';
 import './index.css';
 import { useEffect, useState } from 'react';
 
@@ -23,10 +25,11 @@ export default function Home() {
 
 	return (
 		<main className="home">
-			{/* Clock */}
-			<div className="row">
-
+			{/* Clock with Voice Indicator and Stats Menu */}
+			<div className="row clock-row">
+				<VoiceIndicator />
 				<FancyText text={timeToHHMM(time)} />
+				<StatsMenu />
 			</div>
 			{/* Yumi */}
 			<FancyText text="Yumi" showStar={true} />

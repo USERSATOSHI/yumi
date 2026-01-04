@@ -1,6 +1,8 @@
 import { safe } from '@yumi/results';
 import { statDB } from '../db/index.js';
 import * as tools from '../tools/tools.js';
+import type Elysia from 'elysia';
+import type { ElysiaWS } from 'elysia/ws';
 
 type AsyncFunction = (...args: unknown[]) => Promise<unknown>;
 
@@ -8,16 +10,17 @@ export async function executeCommand(
 	name: string,
 	args: Record<string, unknown> | unknown[],
 	deviceHash: string = 'server',
+	ws: ElysiaWS | null = null,
 ): Promise<{ success: boolean; result: unknown }> {
-	const fn = tools[name as keyof typeof tools] as AsyncFunction;
+	let fn = tools[name as keyof typeof tools] as AsyncFunction;
 	if (!fn) {
 		statDB.recordCommand(name, deviceHash, false, 0);
 		return { success: false, result: null };
 	}
 
 	const start = Date.now();
-	const argsArray = Array.isArray(args) ? args : Object.values(args || {});
-	const res = await safe(fn, ...argsArray);
+	fn = fn.bind(ws ?? null);
+	const res = await safe(fn, args);
 	const duration = Date.now() - start;
 
 	const success = res.isOk();

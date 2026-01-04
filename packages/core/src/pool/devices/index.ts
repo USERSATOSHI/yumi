@@ -59,6 +59,15 @@ export class Pool extends Singleton {
 		return Array.from(this.#devices.values());
 	}
 
+	findByHash(hash: string): Result<Device, PoolError> {
+		for (const device of this.#devices.values()) {
+			if (device.hash === hash) {
+				return Result.ok(device);
+			}
+		}
+		return Result.err(PoolError.DeviceNotFound);
+	}
+
 	get decks(): Device[] {
 		return this.list().filter(device => device.type === DeviceType.Deck);
 	}

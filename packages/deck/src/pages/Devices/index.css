@@ -1,0 +1,458 @@
+.devices-page {
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	overflow-y: auto;
+	height: 100%;
+}
+
+.devices-header {
+	display: flex;
+	justify-content: center;
+	gap: 16px;
+	align-items: center;
+}
+
+.devices-header h2 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1a1a1a;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	/* font-family: 'Bonbon', cursive; */
+}
+
+.devices-summary {
+	display: flex;
+	gap: 16px;
+}
+
+.summary-item {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	font-size: 16px;
+	font-weight: 500;
+	color: #1a1a1a;
+}
+
+/* Status Dot */
+.status-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #888;
+	flex-shrink: 0;
+	box-shadow: 0 0 6px #888;
+}
+
+.status-dot.online {
+	background: #4caf50;
+	box-shadow: 0 0 6px #4caf50;
+}
+
+.status-dot.offline {
+	background: #f44336;
+	box-shadow: 0 0 6px #f44336;
+}
+
+.devices-list {
+	display: flex;
+	flex-direction: column;
+	gap: 32px;
+}
+
+.devices-empty {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	color: #666;
+	gap: 12px;
+}
+
+.devices-empty-box {
+	position: relative;
+	background: #f1f1f1;
+	border-radius: 12px;
+	padding: 40px 60px;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+}
+
+.devices-empty-shadow {
+	position: absolute;
+	inset: 0;
+	background: #1a1a1a;
+	border-radius: 12px;
+	top: 4px;
+	bottom: -10px;
+	right: -10px;
+	left: 4px;
+	z-index: 0;
+}
+
+.devices-empty svg {
+	font-size: 48px;
+	color: #1a1a1a;
+	opacity: 0.5;
+}
+
+/* Device Card */
+.device-card {
+	position: relative;
+	width: 100%;
+}
+
+.device-card-box {
+	position: relative;
+	background: #f1f1f1;
+	border-radius: 12px;
+	z-index: 1;
+	overflow: hidden;
+}
+
+.device-card-shadow {
+	position: absolute;
+	inset: 0;
+	background: #1a1a1a;
+	border-radius: 12px;
+	top: 4px;
+	bottom: -10px;
+	right: -10px;
+	left: 4px;
+	z-index: 0;
+}
+
+.device-card.expanded .device-card-box {
+	background: #fff;
+}
+
+.device-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 14px 16px;
+	width: 100%;
+	background: transparent;
+	border: none;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
+	transition: background 0.15s ease;
+}
+
+.device-card-header:hover {
+	background: rgba(255, 255, 255, 0.5);
+}
+
+.device-info {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.device-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	background: #fff;
+	border-radius: 10px;
+	/* box-shadow: 2px 2px 0 #1a1a1a; */
+}
+
+.device-icon svg {
+	font-size: 22px !important;
+	color: #1a1a1a;
+}
+
+.device-details {
+	display: flex;
+	flex-direction: column;
+}
+
+.device-name {
+	font-weight: 600;
+	font-size: 14px;
+	color: #1a1a1a;
+}
+
+.device-type {
+	font-size: 11px;
+	color: #666;
+	text-transform: capitalize;
+}
+
+.device-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: #666;
+}
+
+.last-seen {
+	font-size: 11px;
+}
+
+.expand-icon {
+	font-size: 20px !important;
+	color: #1a1a1a;
+	transition: transform 0.2s ease;
+}
+
+.expand-icon.expanded {
+	transform: rotate(180deg);
+}
+
+/* Device Card Content */
+.device-card-content {
+	padding: 0 16px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Device State Section */
+.device-state-section h4,
+.media-section h4 {
+	margin: 0 0 10px 0;
+	font-size: 11px;
+	font-weight: 600;
+	color: #666;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.state-items {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.state-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	background: #fff;
+	padding: 10px 12px;
+	border-radius: 8px;
+}
+
+.state-item svg {
+	font-size: 20px !important;
+	color: #1a1a1a;
+	width: 24px;
+}
+
+.state-bar {
+	flex: 1;
+	height: 8px;
+	background: #e0e0e0;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.state-bar-fill {
+	height: 100%;
+	background: #1a1a1a;
+	border-radius: 4px;
+	transition: width 0.3s ease;
+}
+
+.state-bar-fill.brightness {
+	/* background: linear-gradient(90deg, #f59e0b, #fbbf24); */
+}
+
+.state-value {
+	font-size: 12px;
+	font-weight: 600;
+	color: #1a1a1a;
+	min-width: 40px;
+	text-align: right;
+}
+
+/* Media Section */
+.media-section {
+	background: #fff;
+	border-radius: 10px;
+	padding: 14px;
+	/* box-shadow: 3px 3px 0 #1a1a1a; */
+}
+
+.media-info {
+	display: flex;
+	gap: 12px;
+}
+
+.media-artwork {
+	width: 64px;
+	height: 64px;
+	border-radius: 8px;
+	overflow: hidden;
+	flex-shrink: 0;
+	background: #f1f1f1;
+	/* box-shadow: 2px 2px 0 #1a1a1a; */
+}
+
+.media-artwork img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.media-artwork-placeholder {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.media-artwork-placeholder svg {
+	font-size: 28px !important;
+	color: #ccc;
+}
+
+.media-details {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.media-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.playback-icon {
+	font-size: 20px !important;
+	margin-top: 2px;
+}
+
+.playback-icon.playing {
+	color: #4caf50;
+}
+
+.playback-icon.paused {
+	color: #f59e0b;
+}
+
+.playback-icon.stopped {
+	color: #888;
+}
+
+.media-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.media-title {
+	font-weight: 600;
+	font-size: 13px;
+	color: #1a1a1a;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.media-artist {
+	font-size: 12px;
+	color: #666;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.media-progress {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+
+
+.progress-times {
+	display: flex;
+	justify-content: space-between;
+	font-size: 10px;
+	color: #666;
+}
+
+.media-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 16px;
+	color: #888;
+	font-size: 12px;
+}
+
+.media-empty svg {
+	font-size: 20px !important;
+	opacity: 0.5;
+}
+
+/* Device Meta */
+.device-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding-top: 12px;
+	border-top: 2px dashed #e0e0e0;
+}
+
+.meta-item {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-width: 100px;
+	background: #fff;
+	padding: 8px 10px;
+	border-radius: 6px;
+}
+
+.meta-label {
+	font-size: 10px;
+	color: #888;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
+.meta-value {
+	font-size: 11px;
+	color: #1a1a1a;
+	font-family: monospace;
+	font-weight: 500;
+}

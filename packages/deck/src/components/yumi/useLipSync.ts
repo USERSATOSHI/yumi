@@ -126,11 +126,24 @@ export function useLipSync() {
     (audioEl: HTMLMediaElement) => {
       if (!audioEl) return;
 
+      // If already connected to this element, just ensure context is running
+      if (sourceRef.current && audioCtxRef.current) {
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume();
+        }
+        return;
+      }
+
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext();
       }
 
       const audioCtx = audioCtxRef.current;
+
+      // Resume audio context if suspended (browser autoplay policy)
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
 
       sourceRef.current?.disconnect();
       analyserRef.current?.disconnect();
@@ -195,6 +208,12 @@ export function useLipSync() {
     setPitch(null);
   }, [stopSpeechRecognition]);
 
+  const resumeAudioContext = useCallback(() => {
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  }, []);
+
   useEffect(() => disconnect, [disconnect]);
 
   return {
@@ -205,6 +224,7 @@ export function useLipSync() {
     disconnect,
     startSpeechRecognition,
     stopSpeechRecognition,
+    resumeAudioContext,
   };
 }
 

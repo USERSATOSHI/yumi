@@ -1,0 +1,70 @@
+.voice-indicator {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	outline: none;
+	padding: 0;
+}
+
+/* White box container */
+.voice-indicator-box {
+	position: relative;
+	width: 48px;
+	height: 48px;
+	background: #f1f1f1;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1;
+	transition: transform 0.2s ease;
+}
+
+/* Shadow box below */
+.voice-indicator-shadow {
+	position: absolute;
+	width: 48px;
+	height: 48px;
+	background: #1a1a1a;
+	border-radius: 8px;
+	top: 10px;
+	left: 10px;
+	z-index: 0;
+	transition: transform 0.2s ease;
+}
+
+/* Simple dot indicator */
+.voice-indicator-dot {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: #888;
+	transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Listening state - dot becomes green */
+.voice-indicator.listening .voice-indicator-dot {
+	background: #4caf50;
+	box-shadow: 0 0 8px #4caf50;
+}
+
+.voice-indicator:hover .voice-indicator-box {
+	transform: translate(2px, 2px);
+}
+
+.voice-indicator:hover .voice-indicator-shadow {
+	transform: translate(-2px, -2px);
+}
+
+.voice-indicator:active .voice-indicator-box {
+	transform: translate(4px, 4px);
+}
+
+.voice-indicator:active .voice-indicator-shadow {
+	transform: translate(-4px, -4px);
+}
+

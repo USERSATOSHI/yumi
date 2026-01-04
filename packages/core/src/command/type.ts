@@ -1,3 +1,5 @@
+import type { ControlWSData, WSType } from "../modules/ws/type.js";
+
 export interface BaseCommand {
 	type: string;
 	data: BaseCommandData;
@@ -34,12 +36,12 @@ export interface ControlCommand<K extends keyof ControlCommandFnMap> extends Bas
 }
 
 export interface MediaCommandFnMap {
-	play: {};
-	pause: {};
+	playMedia: {};
+	pauseMedia: {};
 	stop: {};
-	next: {};
-	previous: {};
-	seek: { position: number };
+	nextTrack: {};
+	previousTrack: {};
+	seekTo: { position: number };
 	search: { platform: 'youtube' | 'spotify' | 'netflix' | 'jellyfin'; query: string };
 }
 
@@ -52,7 +54,7 @@ export type MediaCommandData<K extends keyof MediaCommandFnMap = keyof MediaComm
 }[K];
 
 export interface MediaCommand<K extends keyof MediaCommandFnMap> extends BaseCommand {
-	type: 'media';
+	type: WSType.Control
 	data: MediaCommandData<K>;
 }
 
