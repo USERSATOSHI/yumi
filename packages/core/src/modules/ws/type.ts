@@ -29,7 +29,7 @@ export type MusicWSData = {
 		position?: number;
 		durationFormatted?: string;
 		positionFormatted?: string;
-		status?: 'playing' | 'paused' | 'stopped';
+		status?: 'Playing' | 'Paused' | 'stopped';
 		artwork?: string | null; // undefined = omit, null = clear, string = URL or base64
 		hash: string;
 	}

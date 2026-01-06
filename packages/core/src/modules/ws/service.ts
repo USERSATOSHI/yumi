@@ -3,6 +3,7 @@ import type { ElysiaWS } from "elysia/ws";
 import { logger, wslog } from "../../integrations/logger/index.js";
 import { WSType, type AckWSData, type ControlWSData, type DeviceWSData, type DeviceStateWSData, type HeartbeatWSData, type MusicWSData, type WSData } from "./type.js";
 import { devicePool, DeviceType } from "../../pool/devices/index.js";
+import { mediaStatePool } from "../../pool/media/index.js";
 import { statDB } from "../../db/index.js";
 import { executeCommand, relayCommand } from "../../command/handler.js";
 import { artworkCache } from "./artwork.js";
@@ -17,7 +18,7 @@ export abstract class Websocket {
 		}
 
 		const data = dataResult.unwrap()!;
-		wslog.info(`Received websocket message: ${message}`);
+		wslog.debug(`Received websocket message: ${message}`);
 
 		try {
 			await this.#process(ws, data);
@@ -69,6 +70,13 @@ export abstract class Websocket {
 			return;
 		}
 
+		// Track media state for this device
+		mediaStatePool.update(data.data.hash, {
+			title: data.data.title,
+			artist: data.data.artist,
+			status: data.data.status ?? 'stopped',
+		});
+
 		// Handle artwork caching - convert base64 to URL
 		const artworkUrl = artworkCache.set(
 			data.data.hash,
@@ -94,7 +102,7 @@ export abstract class Websocket {
 		}
 
 		// forward the music update to decks
-		wslog.withMetrics({ duration: end() }).info(`Music update received for device ${data.data.hash}: ${data.data.title} by ${data.data.artist}`);
+		wslog.withMetrics({ duration: end() }).debug(`Music update received for device ${data.data.hash}: ${data.data.title} by ${data.data.artist} | status=${data.data.status}`);
 		ws.publish('deck', JSON.stringify(forwardData));
 	}
 

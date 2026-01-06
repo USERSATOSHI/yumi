@@ -9,5 +9,7 @@ export type ToolSchema = {
 			required: string[];
 		};
 		example: string;
+		/** Intent(s) this tool handles - extracted from @intent JSDoc tag */
+		intents?: string[];
 	};
 };

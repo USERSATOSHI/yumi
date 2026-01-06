@@ -3,11 +3,12 @@
  */
 import type Elysia from 'elysia';
 import { createControlCommand, createMediaCommand } from '../command/index.js';
-import ledfx, { type LedFx } from '../integrations/ledfx';
+import ledfx, { LedFxScene, type LedFx } from '../integrations/ledfx';
 import { devicePool } from '../pool/devices/index.js';
 import { reminderPool } from '../pool/reminders/index.js';
 import { todoPool } from '../pool/todos/index.js';
 import { type ElysiaWS } from 'elysia/ws';
+import { mediaStatePool } from '../pool/media/index.js';
 
 /**
  * Change the scene of a WLED light using LEDfx.
@@ -47,6 +48,7 @@ export async function changeLedFxScene({
 /**
  * Get current time in local format.
  *
+ * @intent TIME_GET
  * @returns string - Current time in local format
  *
  * @example
@@ -54,7 +56,6 @@ export async function changeLedFxScene({
  * getCurrentTime();
  * ```
  */
-
 export function getCurrentTime(): string {
 	return new Date().toLocaleString();
 }
@@ -62,6 +63,7 @@ export function getCurrentTime(): string {
 /**
  * create a reminder message
  *
+ * @intent REMINDER_ADD
  * @param params.message - the reminder message
  * @param params.remindAt - time to remind in hh:mm format
  * @param params.repeat - optional repeat interval ('daily', 'weekly', 'monthly', 'yearly')
@@ -104,6 +106,7 @@ export function addReminder({
 /**
  * get upcoming reminders
  *
+ * @intent REMINDER_LIST
  * @param params.limit - number of upcoming reminders to retrieve
  * @returns string - formatted list of upcoming reminders
  *
@@ -135,6 +138,7 @@ export function getUpcomingReminders({ limit = 5 }: { limit?: number } = {}): st
 /**
  * Delete a reminder
  *
+ * @intent REMINDER_DELETE
  * @param params.title - title of the reminder to delete
  * @returns string - result message
  *
@@ -158,6 +162,7 @@ export function deleteReminder({ title }: { title: string }): string {
 /**
  * Create to-do list item
  *
+ * @intent TODO_ADD
  * @param params.task - the task description
  * @param params.priority - 'low' | 'medium' | 'high'
  *
@@ -216,6 +221,7 @@ export function editTodoItem({ item, newTask }: { item: string; newTask: string 
 /**
  * List all to-do items
  *
+ * @intent TODO_LIST
  * @returns string - formatted list of to-do items
  *
  * @example
@@ -240,6 +246,7 @@ export function listTodoItems(): string {
 /**
  * Delete a to-do list item
  *
+ * @intent TODO_DELETE
  * @param params.item - the to-do list item to delete
  * @returns string - result message
  *
@@ -259,6 +266,7 @@ export function deleteTodoItem({ item }: { item: string }): string {
 /**
  * Complete a to-do list item
  *
+ * @intent TODO_COMPLETE
  * @param params.item - the to-do list item to complete
  * @returns string - result message
  */
@@ -300,6 +308,7 @@ export function clearAllTodoItems(): string {
 /**
  * Play media
  *
+ * @intent MEDIA_PLAY
  * @param params.hash - device Hash
  *
  * @this {ElysiaWS}
@@ -317,6 +326,7 @@ export function playMedia(this: ElysiaWS, { hash }: { hash: string }): boolean {
 /**
  * Pause media
  *
+ * @intent MEDIA_PAUSE
  * @param params.hash - device Hash
  *
  * @this {ElysiaWS}
@@ -334,6 +344,7 @@ export function pauseMedia(this: ElysiaWS, { hash }: { hash: string }): boolean 
 /**
  * Stop media
  *
+ * @intent MEDIA_STOP
  * @param params.hash - device Hash
  *
  * @this {ElysiaWS}
@@ -351,6 +362,7 @@ export function stopMedia(this: ElysiaWS, { hash }: { hash: string }): boolean {
 /**
  * Skip to next media track
  *
+ * @intent MEDIA_NEXT
  * @param params.hash - device Hash
  *
  * @this {ElysiaWS}
@@ -368,6 +380,7 @@ export function nextMediaTrack(this: ElysiaWS, { hash }: { hash: string }): bool
 /**
  * Skip to previous media track
  *
+ * @intent MEDIA_PREVIOUS
  * @param params.hash - device Hash
  *
  * @this {ElysiaWS}
@@ -385,6 +398,7 @@ export function previousMediaTrack(this: ElysiaWS, { hash }: { hash: string }): 
 /**
  * Set media volume
  *
+ * @intent MEDIA_VOLUME
  * @param params.hash - device Hash
  * @param params.volume - volume level (0-100)
  *
@@ -402,18 +416,40 @@ export function setMediaVolume(
 	console.log(this, this.publish)
 	this.publish(hash, JSON.stringify(createControlCommand('volume', { level: volume / 100 }, hash)));
 	return true;
-}	
+}
+
+
+// device controls
 
 /**
- * Mute media
- *
+ * Shutdown device
+ * 
+ * @intent DEVICE_SHUTDOWN
  * @param params.hash - device Hash
- * @param params.muted - mute state
- *
+ * 
  * @this {ElysiaWS}
  * @returns boolean - success status
  */
-export function muteMedia(
+export function shutdownDevice(this: ElysiaWS, { hash }: { hash: string }): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createControlCommand('shutdown', {}, hash)));
+	return true;
+}
+
+/**
+ * Mute device
+ * 
+ * @intent DEVICE_MUTE
+ * @param params.hash - device Hash
+ * @param params.muted - mute state
+ * 
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function muteDevice(
 	this: ElysiaWS,
 	{ hash, muted }: { hash: string; muted: boolean },
 ): boolean {
@@ -423,4 +459,66 @@ export function muteMedia(
 
 	this.publish(hash, JSON.stringify(createControlCommand('mute', { muted }, hash)));
 	return true;
+}
+
+/**
+ * Sleep device
+ * 
+ * @intent DEVICE_SLEEP
+ * @param params.hash - device Hash
+ * @param params.duration - sleep duration in minutes
+ * 
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function sleepDevice(
+	this: ElysiaWS,
+	{ hash, duration }: { hash: string; duration: number },
+): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createControlCommand('sleep', { duration }, hash)));
+	return true;
+}
+
+/**
+ * Lock device
+ * 
+ * @intent DEVICE_LOCK
+ * @param params.hash - device Hash
+ * 
+ * @this {ElysiaWS}
+ * @returns boolean - success status
+ */
+export function lockDevice(this: ElysiaWS, { hash }: { hash: string }): boolean {
+	if (!hash) {
+		return false;
+	}
+
+	this.publish(hash, JSON.stringify(createControlCommand('lock', {}, hash)));
+	return true;
+}
+
+// routines
+
+/**
+ * Good Night routine
+ * 
+ * @intent ROUTINE_GOOD_NIGHT
+ * @this {ElysiaWS}
+ * @returns string - result message
+ */
+export function goodNightRoutine(this: ElysiaWS): string {
+
+	// change LEDfx scene to sleep
+	const playingDevices = mediaStatePool.getPlayingDevices();
+	for (const device of playingDevices) {
+		changeLedFxScene({ deviceHash: device.hash, sceneName: LedFxScene.Sleep });
+	}
+	// shutdown all links
+	// shutdownDevice.call(this, { hash: 'link' });
+	console.log('calling shutdownDevice for all links');
+	return 'Good Night routine executed: LEDfx set to sleep scene, all links shutting down.';
 }

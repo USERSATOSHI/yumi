@@ -15,6 +15,9 @@ import voicevox from '../../integrations/voicevox/index.js';
 import { serverHolder } from '../../server.js';
 import { broadcastSpeak } from '../ws/broadcast.js';
 import type { Reminder } from '../../pool/reminders/index.js';
+import { ToolClassifier, toolClassifier } from '../../integrations/models/tool-classifier/index.js';
+import { DEVICE_TOOLS, MEDIA_TOOLS, injectDeviceHash } from '../../tools/index.js';
+import { mediaStatePool } from '../../pool/media/index.js';
 
 const DEFAULT_AUDIO_PATH = process.env.YUMI_AUDIO_PATH ?? join(process.cwd(), '.yumi', 'audio.wav');
 const DEFAULT_REMINDER_AUDIO_PATH = process.env.YUMI_REMINDER_AUDIO_PATH ?? join(process.cwd(), '.yumi', 'reminder-audio.wav');
@@ -51,8 +54,19 @@ export abstract class Speak {
 		const serverURL = req.headers.get('host') || 'yumi.home.usersatoshi.in';
 
 		// Fetch context and tool calls in parallel
-		const [contexts, tools] = await Promise.all([this.#getContext(text), this.toolCall(text)]);
+		const promises: Promise<unknown>[] = [this.#getContext(text)];
 
+		const shouldCallToolResult = await toolClassifier.classify(text);
+
+		const shouldCallTool = shouldCallToolResult.unwrapOr({ intent: 'NO_TOOL', needsTool: false });
+		
+		if (shouldCallTool.needsTool) {
+			promises.push(this.toolCall(text, shouldCallTool));
+		}
+
+		const [contextsResult, tools] = await Promise.all(promises);
+		const contexts = contextsResult as Message[];
+		
 		const filteredContexts: Omit<Message, 'embedding' | 'createdAt'>[] = contexts.map(
 			({ id, role, content }) => ({
 				id,
@@ -61,7 +75,7 @@ export abstract class Speak {
 			}),
 		);
 
-		const toolResults = await this.#executeToolCalls(tools);
+		const toolResults = await this.#executeToolCalls(tools as Awaited<ReturnType<typeof Speak.toolCall>>, text);
 
 		// Build context with old context first, then tool results LAST (closest to user message = highest priority)
 		const finalContext: Omit<Message, 'embedding' | 'createdAt'>[] = [];
@@ -113,11 +127,10 @@ export abstract class Speak {
 		return contexts;
 	}
 
-	static async toolCall(query: string) {
+	static async toolCall(query: string, shouldCallTool: { intent: keyof typeof ToolClassifier.INTENTS; needsTool: boolean }) {
 		const end = request.time();
-		const devices = devicePool.links;
 
-		const responseResult = await toolCall.generate(query, devices);
+		const responseResult = await toolCall.generate(query, shouldCallTool);
 		if (responseResult.isErr()) {
 			request.withMetrics({ duration: end() }).error(`Tool call failed: ${responseResult.unwrapErr()!.message}`);
 			return null;
@@ -129,7 +142,75 @@ export abstract class Speak {
 		return res;
 	}
 
-	static async #executeToolCalls(toolCalls: Awaited<ReturnType<typeof Speak.toolCall>>) {
+	/**
+	 * Find device by name mentioned in the query (case-insensitive, partial match)
+	 */
+	static #findDeviceByName(query: string): string | null {
+		const devices = devicePool.links;
+		const lowerQuery = query.toLowerCase();
+
+		for (const device of devices) {
+			// Check if device name is mentioned in the query
+			if (lowerQuery.includes(device.name.toLowerCase())) {
+				return device.hash;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get device hashes for a tool call based on context.
+	 * 
+	 * Priority:
+	 * 1. If a device name is mentioned in the query, use that device
+	 * 2. For media tools, find devices that are actively playing
+	 * 3. For other device tools, use all connected devices
+	 * 
+	 * @returns Array of device hashes to execute the tool on
+	 */
+	static #getDeviceHashesForTool(toolName: string, query: string): string[] {
+		if (!DEVICE_TOOLS.has(toolName)) {
+			return [];
+		}
+
+		const devices = devicePool.links;
+		
+		if (devices.length === 0) {
+			request.warn(`No devices connected for tool: ${toolName}`);
+			return [];
+		}
+
+		// Priority 1: Check if a specific device name is mentioned in the query
+		const namedDeviceHash = this.#findDeviceByName(query);
+		if (namedDeviceHash) {
+			request.debug(`Found device by name in query for ${toolName}: ${namedDeviceHash}`);
+			return [namedDeviceHash];
+		}
+
+		// Priority 2: For media tools, target devices that are actively playing
+		if (MEDIA_TOOLS.has(toolName)) {
+			const playingDevices = mediaStatePool.getPlayingDevices();
+			
+			if (playingDevices.length > 0) {
+				const hashes = playingDevices.map(d => d.hash);
+				request.debug(`Found ${hashes.length} playing device(s) for ${toolName}`);
+				return hashes;
+			}
+
+			request.warn(`No playing devices for media tool: ${toolName}`);
+			return [];
+		}
+
+		const firstDevice = devices[0];
+		if (firstDevice) {
+			return [firstDevice.hash];
+		}
+
+		return [];
+	}
+
+	static async #executeToolCalls(toolCalls: Awaited<ReturnType<typeof Speak.toolCall>>, query: string) {
 		if (!toolCalls) {
 			return;
 		}
@@ -138,11 +219,40 @@ export abstract class Speak {
 		const results: Record<string, any> = {};
 
 		for (const call of toolCalls) {
-			const { success, result } = await executeCommand(call.name, call.arguments || {}, 'server', serverHolder.get() as any);
-			if (!success) {
-				request.warn(`Tool ${call.name} execution failed`);
+			const baseArgs = call.arguments || {};
+			
+			// Get device hashes for this tool (may be multiple for media tools)
+			const deviceHashes = this.#getDeviceHashesForTool(call.name, query);
+			
+			if (DEVICE_TOOLS.has(call.name)) {
+				if (deviceHashes.length === 0) {
+					request.warn(`Skipping ${call.name} - no suitable device available`);
+					results[call.name] = { error: 'No suitable device connected' };
+					continue;
+				}
+
+				// Execute on all matching devices
+				const deviceResults: any[] = [];
+				for (const deviceHash of deviceHashes) {
+					const args = injectDeviceHash(call.name, baseArgs, deviceHash);
+					const { success, result } = await executeCommand(call.name, args, deviceHash, serverHolder.get() as any);
+					
+					if (!success) {
+						request.warn(`Tool ${call.name} execution failed for device ${deviceHash}`);
+					}
+					deviceResults.push({ deviceHash, success, result });
+				}
+
+				// If single device, return simple result; if multiple, return array
+				results[call.name] = deviceResults.length === 1 ? deviceResults[0]?.result : deviceResults;
+			} else {
+				// Non-device tool - execute normally
+				const { success, result } = await executeCommand(call.name, baseArgs, 'server', serverHolder.get() as any);
+				if (!success) {
+					request.warn(`Tool ${call.name} execution failed`);
+				}
+				results[call.name] = result;
 			}
-			results[call.name] = result;
 		}
 
 		request.withMetrics({ duration: end() }).info(`Executed tool calls for speech synthesis: ${JSON.stringify(results, null, 2)}`);

@@ -1,7 +1,7 @@
 /**
  * External Dependencies
  */
-import { Project } from 'ts-morph';
+import { Project, SyntaxKind } from 'ts-morph';
 
 /**
  * Yumi Internal Packages
@@ -13,6 +13,51 @@ import { Result } from '@yumi/results';
  */
 import { YumiToolsError } from './errors';
 import type { ToolSchema } from './types';
+
+export type { ToolSchema } from './types';
+
+/**
+ * Maps TypeScript type strings to JSON Schema type strings
+ *
+ * @param tsType - The TypeScript type string to convert
+ * @returns The corresponding JSON Schema type string
+ *
+ * @example
+ * ```typescript
+ * mapTSTypeToJSON('string') // 'string'
+ * mapTSTypeToJSON('number') // 'number'
+ * mapTSTypeToJSON('boolean') // 'boolean'
+ * mapTSTypeToJSON('"low" | "medium" | "high"') // 'string'
+ * ```
+ */
+function mapTSTypeToJSON(tsType: string): string {
+	// Remove import(...) wrapper if present
+	const cleanType = tsType.replace(/import\([^)]+\)\./g, '');
+
+	// Check for basic types
+	if (cleanType === 'string') return 'string';
+	if (cleanType === 'number') return 'number';
+	if (cleanType === 'boolean') return 'boolean';
+	if (cleanType === 'null') return 'null';
+	if (cleanType === 'undefined') return 'null';
+
+	// Check for arrays
+	if (cleanType.endsWith('[]') || cleanType.startsWith('Array<')) return 'array';
+
+	// Check for string literal unions (e.g., "low" | "medium" | "high")
+	if (/^["']/.test(cleanType) || /\s*\|\s*["']/.test(cleanType)) return 'string';
+
+	// Check for number literal unions
+	if (/^\d+(\s*\|\s*\d+)*$/.test(cleanType)) return 'number';
+
+	// Check for union types with undefined (optional)
+	if (cleanType.includes(' | undefined')) {
+		return mapTSTypeToJSON(cleanType.replace(' | undefined', ''));
+	}
+
+	// Default to string for complex types
+	return 'string';
+}
 
 /**
  * Generates tool schemas from all exported functions in a TypeScript file
@@ -115,17 +160,57 @@ export function generateToolSchemasFromFile(path: string): Result<ToolSchema[], 
 		// Handle multiple parameters
 		for (const param of params) {
 			const paramName = param.getName();
-			const paramType = param.getType();
-			const paramDescription = tagMap['param']?.[i++] || '';
-			const typeText = paramType.getText();
 
-			props[paramName] = { type: typeText, description: paramDescription };
-			required.push(paramName);
+			// Skip 'this' parameter (used for TypeScript typing)
+			if (paramName === 'this') continue;
+
+			const paramType = param.getType();
+
+			// Check if this is an object binding pattern (destructured parameter)
+			const nameNode = param.getNameNode();
+			if (nameNode.getKind() === SyntaxKind.ObjectBindingPattern) {
+				// Extract properties from the type
+				const typeProps = paramType.getProperties();
+				for (const typeProp of typeProps) {
+					const propName = typeProp.getName();
+					const propType = typeProp.getValueDeclaration()?.getType() ?? typeProp.getDeclaredType();
+					const propTypeText = mapTSTypeToJSON(propType?.getText() ?? 'string');
+
+					// Find matching @param tag description (format: "propName - description" or "propName description")
+					const paramTag = tagMap['param']?.[i];
+					let propDescription = '';
+					if (paramTag) {
+						// Check if this param tag matches the property name
+						const match = paramTag.match(new RegExp(`^${propName}\\s*[-:]?\\s*(.*)$`));
+						if (match) {
+							propDescription = match[1] || '';
+						}
+					}
+
+					props[propName] = { type: propTypeText, description: propDescription };
+
+					// Check if the property is optional
+					if (!typeProp.isOptional()) {
+						required.push(propName);
+					}
+				}
+				i++;
+			} else {
+				// Regular parameter
+				const paramDescription = tagMap['param']?.[i++] || '';
+				const typeText = mapTSTypeToJSON(paramType.getText());
+
+				props[paramName] = { type: typeText, description: paramDescription };
+				required.push(paramName);
+			}
 		}
 
 		// convert example from ```typescript\ncode\n``` to code;
 		const example =
 			tagMap['example']?.[0]?.replace(/```typescript\n/, '').replace(/\n```/, '') || '';
+
+		// Extract @intent tags (can have multiple)
+		const intents = tagMap['intent'] ?? [];
 
 		schemas.push({
 			type: 'function',
@@ -138,6 +223,7 @@ export function generateToolSchemasFromFile(path: string): Result<ToolSchema[], 
 					required,
 				},
 				example,
+				...(intents.length > 0 && { intents }),
 			},
 		});
 	}

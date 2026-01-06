@@ -1,91 +1,84 @@
 import { jsonrepair } from 'jsonrepair';
 
-import { model as logger } from '../../logger/index';
+import { model as logger, model } from '../../logger/index';
 import { Singleton } from '@yumi/patterns';
 import { env } from 'bun';
 import type { Message } from '../types';
 import { Result, safe } from '@yumi/results';
 import { ToolCallError } from './error';
 import ollama from 'ollama';
-import { tools } from 'packages/core/src/tools';
-import type { Device } from 'packages/core/src/pool/devices/index.js';
+import { toolsForAI, getToolsForIntent } from 'packages/core/src/tools';
 import { type ToolCall as ToolCallType } from 'ollama';
+import type { ToolClassifier } from '../tool-classifier/index.js';
 
 export class ToolCall extends Singleton {
-	#model = env.toolcall_model || 'qwen3:4b-instruct-2507-q4_K_M';
-
+		#model = env.toolcall_model || 'functiongemma';
 	#systemPrompt = `
-You are a tool-calling assistant. Your job is to determine if the user's request needs a tool call and execute it.
+You are a tool-calling assistant.
 
-Rules:
-- If the request needs real-time or external data, call the appropriate tool
-- If the request can be answered with general knowledge alone, do not call any tool
-- Respond only with: true (tool called) or false (no tool called)
+Your job is to call the correct tool when needed.
+
+RULES:
+- Call the tool from the provided tool list that best matches the user's request
+- Only call tools that are in the provided tool list
+- If no tool is required, return NOTHING
+- Do NOT respond with text
+- Do NOT explain your reasoning
+- Do NOT ask questions
+- NEVER invent arguments
 
 IMPORTANT:
-- ANY question about current time, date, day, or comparing dates (e.g., "is today X") → call getCurrentTime
-- Questions about personal data (calendar, events, birthdays) → call relevant tool if available
-- If unsure whether you need real data, call the tool anyway
-- When calling media/device tools (playMedia, pauseMedia, stopMedia, setMediaVolume, etc.), you MUST use the actual device hash from the connected devices list - NEVER use placeholder values like "music_device_hash"
-- If only one device is connected, use that device's hash for any device-related request
+- For device/media tools, do NOT provide hash/deviceHash - it will be auto-filled
 `;
 
 	async generate(
 		message: string,
-		devices?: Device[],
+		shouldCallTool: { intent: keyof typeof ToolClassifier.INTENTS; needsTool: boolean },
 	): Promise<Result<ToolCallType[] | undefined, ToolCallError>> {
 		const end = logger.time();
+
+		// Filter tools based on intent - model only sees relevant tools
+		const filteredTools = getToolsForIntent(shouldCallTool.intent);
+		
+		logger.debug(`Intent: ${shouldCallTool.intent} → Tools: [${filteredTools.map(t => t.function.name).join(', ')}]`);
+
 		const messages = [
 			{ role: 'system', content: this.#systemPrompt },
-			devices
-				? this.#getDevicesMessage(devices)
-				: { role: 'system', content: 'no devices connected' },
 			{ role: 'user', content: message },
 		];
-
-		console.log('ToolCall#generate messages:', messages);
 
 		const responseResult = await safe(
 			ollama.chat({
 				model: this.#model,
 				messages,
 				stream: false,
-				tools,
+				tools: filteredTools,
 				think: false,
 				options: {
 					low_vram: true,
+					num_ctx: 1024,
+					num_predict: 128,
+					temperature: 0,
 				},
 			}),
 		);
 
 		if (responseResult.isErr()) {
-			logger.error(`Ollama generateResponse error: ${responseResult.unwrapErr()!.message}`, {
-				duration: end(),
-			});
-			return Result.err(ToolCallError.InvalidResponse(responseResult.unwrapErr()!.message));
+			logger.error(
+				`Ollama generateResponse error: ${responseResult.unwrapErr()!.message}`,
+				{ duration: end() },
+			);
+			return Result.err(
+				ToolCallError.InvalidResponse(
+					responseResult.unwrapErr()!.message,
+				),
+			);
 		}
 
 		const response = responseResult.unwrap()!;
+		model.withMetrics({duration: end()}).info(`ToolCall response: ${response.message.tool_calls ? JSON.stringify(response.message.tool_calls, null, 2) : 'no tool calls'}`);
 
 		return Result.ok(response.message.tool_calls);
-	}
-
-	#getDevicesMessage(devices: Device[]): Message {
-		if (devices.length === 0) {
-			return {
-				role: 'system',
-				content: 'No devices are currently connected. Cannot execute device/media commands.',
-			};
-		}
-
-		const deviceList = devices
-			.map((device) => `- Name: "${device.name}" → hash: "${device.hash}"`)
-			.join('\n');
-
-		return {
-			role: 'system',
-			content: `Connected devices (USE THESE EXACT HASHES for tool calls):\n${deviceList}`,
-		};
 	}
 }
 
