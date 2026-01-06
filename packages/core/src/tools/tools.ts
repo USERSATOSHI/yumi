@@ -518,7 +518,6 @@ export function goodNightRoutine(this: ElysiaWS): string {
 		changeLedFxScene({ deviceHash: device.hash, sceneName: LedFxScene.Sleep });
 	}
 	// shutdown all links
-	// shutdownDevice.call(this, { hash: 'link' });
-	console.log('calling shutdownDevice for all links');
+	shutdownDevice.call(this, { hash: 'link' });
 	return 'Good Night routine executed: LEDfx set to sleep scene, all links shutting down.';
 }
