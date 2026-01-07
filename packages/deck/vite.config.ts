@@ -19,10 +19,10 @@ export default defineConfig({
         description: 'Yumi Deck - Voice Assistant Dashboard',
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',
-        display: 'standalone',
+        display: 'fullscreen',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/?fullscreen=true',
         icons: [
           {
             src: 'pwa-192x192.svg',
