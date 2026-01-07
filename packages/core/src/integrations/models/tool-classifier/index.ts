@@ -6,12 +6,12 @@ import { model as logger } from '../../logger/index.js';
 import { env } from 'bun';
 
 const ollama = new OllamaPkg({
-	host: env.OLLAMA_GPU_BASE_URL || 'http://localhost:11435',
+	host: env.OLLAMA_CPU_BASE_URL || 'http://localhost:11434',
 });
 
 
 export class ToolClassifier extends Singleton {
-	#model = 'qwen3:0.6b';
+	#model = 'qwen2:0.5b';
 
 	// 🔑 Single source of truth: intents + themes + descriptions
 	static readonly INTENTS = {
@@ -162,10 +162,6 @@ Rules:
 					{ role: 'system', content: this.#systemPrompt },
 					{ role: 'user', content: message },
 				],
-				options: {
-					low_vram: true,
-					temperature: 0.1,
-				},
 			}),
 		);
 
