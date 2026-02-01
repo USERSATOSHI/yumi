@@ -24,6 +24,7 @@ COPY packages/results/package.json packages/results/
 COPY packages/stats/package.json packages/stats/
 COPY packages/tools/package.json packages/tools/
 COPY packages/vectordb/package.json packages/vectordb/
+COPY packages/tasks/package.json packages/tasks/
 
 RUN bun install
 
