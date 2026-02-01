@@ -12,6 +12,7 @@
 	{ "path": "../patterns" },
 	{ "path": "../tools" },
 	{ "path": "../stats" },
-	{ "path": "../vectordb" }
+	{ "path": "../vectordb" },
+	{ "path": "../tasks" }
   ]
 }

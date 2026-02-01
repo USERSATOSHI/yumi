@@ -146,6 +146,76 @@ Rules:
 `;
 	})();
 
+	/**
+	 * Normalize the raw model output to find the best matching intent.
+	 * Handles typos like "REMIND_ADD" -> "REMINDER_ADD" and extra words like "REMINDER_ADD Intent".
+	 */
+	#normalizeIntent(raw: string): keyof typeof ToolClassifier.INTENTS | null {
+		// Clean up: uppercase, remove extra words, trim
+		let cleaned = raw.toUpperCase().trim();
+		
+		// Remove common suffixes the model might add
+		cleaned = cleaned.replace(/\s*(INTENT|ACTION|COMMAND|TOOL)$/i, '').trim();
+		
+		// Direct match first
+		if (ToolClassifier.INTENT_VALUES.includes(cleaned as keyof typeof ToolClassifier.INTENTS)) {
+			return cleaned as keyof typeof ToolClassifier.INTENTS;
+		}
+
+		// Fuzzy match: find the closest intent
+		let bestMatch: keyof typeof ToolClassifier.INTENTS | null = null;
+		let bestScore = 0;
+
+		for (const validIntent of ToolClassifier.INTENT_VALUES) {
+			const score = this.#similarity(cleaned, validIntent);
+			if (score > bestScore && score >= 0.7) { // 70% similarity threshold
+				bestScore = score;
+				bestMatch = validIntent;
+			}
+		}
+
+		if (bestMatch) {
+			logger.info(`ToolClassifier fuzzy matched "${raw}" -> "${bestMatch}" (score: ${bestScore.toFixed(2)})`);
+		}
+
+		return bestMatch;
+	}
+
+	/**
+	 * Calculate similarity between two strings (0-1).
+	 * Uses a simple character-level comparison.
+	 */
+	#similarity(a: string, b: string): number {
+		if (a === b) return 1;
+		if (!a.length || !b.length) return 0;
+
+		// Check if one contains the other (partial match bonus)
+		if (a.includes(b) || b.includes(a)) {
+			return Math.min(a.length, b.length) / Math.max(a.length, b.length);
+		}
+
+		// Levenshtein distance-based similarity
+		const matrix: number[][] = [];
+		for (let i = 0; i <= a.length; i++) {
+			matrix[i] = [i];
+		}
+		for (let j = 0; j <= b.length; j++) {
+			matrix[0]![j] = j;
+		}
+		for (let i = 1; i <= a.length; i++) {
+			for (let j = 1; j <= b.length; j++) {
+				const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+				matrix[i]![j] = Math.min(
+					matrix[i - 1]![j]! + 1,
+					matrix[i]![j - 1]! + 1,
+					matrix[i - 1]![j - 1]! + cost,
+				);
+			}
+		}
+		const distance = matrix[a.length]![b.length]!;
+		return 1 - distance / Math.max(a.length, b.length);
+	}
+
 	async classify(
 		message: string,
 	): Promise<
@@ -171,16 +241,20 @@ Rules:
 			);
 		}
 
-		const intent = responseResult.unwrap()!.message.content.trim();
+		const rawIntent = responseResult.unwrap()!.message.content.trim();
+		logger.info(`ToolClassifier raw output: "${rawIntent}"`);
 
-		logger.info(`ToolClassifier intent: ${intent}`);
+		const intent = this.#normalizeIntent(rawIntent);
 
-		if (!ToolClassifier.INTENT_VALUES.includes(intent as keyof typeof ToolClassifier.INTENTS)) {
-			return Result.err(ToolClassifierError.InvalidResponse(`Unknown intent: ${intent}`));
+		if (!intent) {
+			logger.warn(`ToolClassifier could not match intent: "${rawIntent}"`);
+			return Result.err(ToolClassifierError.InvalidResponse(`Unknown intent: ${rawIntent}`));
 		}
 
+		logger.info(`ToolClassifier resolved intent: ${intent}`);
+
 		return Result.ok({
-			intent: intent as keyof typeof ToolClassifier.INTENTS,
+			intent,
 			needsTool: intent !== 'NO_TOOL',
 		});
 	}

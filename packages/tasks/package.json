@@ -1,0 +1,22 @@
+{
+	"name": "@yumi/tasks",
+	"version": "1.0.0",
+	"type": "module",
+	"description": "Advanced reminders and todos with natural language parsing for AI tool integration",
+	"scripts": {
+		"dev": "bun run src/index.ts",
+		"start": "bun run src/index.ts",
+		"test": "bun test",
+		"format": "bunx prettier . --write",
+		"check-format": "bunx prettier . --check",
+		"typecheck": "bunx tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "catalog:"
+	},
+	"dependencies": {
+		"@yumi/results": "workspace:*",
+		"@yumi/tools": "workspace:*"
+	}
+}

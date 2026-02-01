@@ -80,13 +80,24 @@ export class ReminderPool extends Singleton {
 		};
 	}
 
+	// Max safe timeout value - use 24 hours for hybrid approach
+	// Timers handle short-term, sweeper handles long-term
+	static readonly #MAX_TIMER_DELAY = 24 * 60 * 60 * 1000; // 24 hours
+
 	#scheduleTimer(reminder: Reminder) {
 		// Clear existing timer if any
 		this.#clearTimer(reminder.id);
 
 		const delay = reminder.remindAt - Date.now();
-		if (delay <= 0) return; // Already due, sweeper will handle
+		
+		// Already due - sweeper will handle it
+		if (delay <= 0) return;
+		
+		// Too far in the future - let the sweeper handle it
+		// Sweeper runs every minute and will schedule a timer when it's close enough
+		if (delay > ReminderPool.#MAX_TIMER_DELAY) return;
 
+		// Within 24 hours - use precise timer
 		const timer = setTimeout(() => {
 			this.#handleDueReminder(reminder.id);
 		}, delay);
@@ -165,25 +176,32 @@ export class ReminderPool extends Singleton {
 		options: { description?: string; repeat?: 'daily' | 'weekly' | 'monthly' | 'yearly' } = {}
 	): Result<Reminder, ReminderPoolError> {
 		const normalizedTitle = title.toLowerCase();
-		
+
+		console.debug('[reminderPool] add called', { title: normalizedTitle, remindAt: remindAt instanceof Date ? new Date(remindAt).toISOString() : new Date(remindAt).toISOString(), options });
+
 		if (this.#titleToId.has(normalizedTitle)) {
+			console.error('[reminderPool] add failed: duplicate title', { title: normalizedTitle });
 			return Result.err(ReminderPoolError.ReminderAlreadyExists);
 		}
 
 		const remindAtMs = remindAt instanceof Date ? remindAt.getTime() : remindAt;
 		if (remindAtMs <= Date.now()) {
+			console.error('[reminderPool] add failed: remindAt is in the past', { remindAt: new Date(remindAtMs).toISOString(), now: new Date().toISOString() });
 			return Result.err(ReminderPoolError.InvalidRemindTime);
 		}
 
 		const id = this.#db.addReminder(title, remindAtMs, options);
 		const row = this.#db.getReminder(id);
 		if (!row) {
+			console.error('[reminderPool] add failed: db did not return row after add', { id });
 			return Result.err(ReminderPoolError.ReminderNotFound);
 		}
 
 		const reminder = this.#rowToReminder(row);
 		this.#titleToId.set(normalizedTitle, id);
 		this.#scheduleTimer(reminder);
+
+		console.debug('[reminderPool] add success', { id: reminder.id, title: reminder.title, remindAt: new Date(reminder.remindAt).toISOString() });
 
 		return Result.ok(reminder);
 	}
@@ -287,15 +305,29 @@ export class ReminderPool extends Singleton {
 	}
 
 	/**
-	 * Sweep: process due reminders and clean up
+	 * Sweep: process due reminders, schedule approaching reminders, and clean up
 	 */
 	sweep(): number {
+		const now = Date.now();
+		
+		// Process due reminders
 		const due = this.#db.getDueReminders();
 		let processed = 0;
 
 		for (const row of due) {
 			this.#handleDueReminder(row.id);
 			processed++;
+		}
+
+		// Schedule timers for reminders approaching within 24 hours
+		// that don't already have timers
+		const upcoming = this.#db.getUpcomingReminders(100);
+		for (const row of upcoming) {
+			const delay = row.remind_at - now;
+			// If within 24 hours and no timer exists, schedule one
+			if (delay > 0 && delay <= ReminderPool.#MAX_TIMER_DELAY && !this.#timers.has(row.id)) {
+				this.#scheduleTimer(this.#rowToReminder(row));
+			}
 		}
 
 		return processed;

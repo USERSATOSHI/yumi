@@ -7,7 +7,11 @@ import router from "./modules/index.js";
 import { serverHolder } from "./server.js";
 import { reminderPool } from "./pool/reminders/index.js";
 import { Speak } from "./modules/speak/service.js";
+import { setTaskStorage } from "@yumi/tasks";
+import { coreTaskStorage } from "./tools/task-storage-adapter.js";
 
+// Initialize @yumi/tasks with core's storage adapter
+setTaskStorage(coreTaskStorage);
 
 const app = new Elysia()
 	.use(

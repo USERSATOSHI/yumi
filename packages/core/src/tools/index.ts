@@ -8,12 +8,19 @@ import { fileURLToPath } from 'node:url';
  * Yumi Internal Packages
  */
 import { generateToolSchemasFromFile, type ToolSchema } from '@yumi/tools';
+import { getTaskToolSchemas, getTaskIntentMapping } from '@yumi/tasks';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-/** Full tool schemas with all parameters */
-export const tools = generateToolSchemasFromFile(resolve(__dirname, 'tools.ts')).unwrap()!;
+/** Core tool schemas (media, device, LEDfx, etc.) */
+const coreTools = generateToolSchemasFromFile(resolve(__dirname, 'tools.ts')).unwrap()!;
+
+/** Task tool schemas from @yumi/tasks (reminders, todos) */
+const taskTools = getTaskToolSchemas();
+
+/** Full tool schemas - core + tasks */
+export const tools: ToolSchema[] = [...coreTools, ...taskTools];
 
 /** Parameter names that represent device identifiers - AI shouldn't provide these */
 const DEVICE_HASH_PARAMS = ['hash', 'deviceHash'] as const;

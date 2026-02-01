@@ -22,6 +22,7 @@
 		"@yumi/patterns": "workspace:*",
 		"@yumi/results": "workspace:*",
 		"@yumi/stats": "workspace:*",
+		"@yumi/tasks": "workspace:*",
 		"@yumi/tools": "workspace:*",
 		"@yumi/vectordb": "workspace:*",
 		"audic": "catalog:voice",

@@ -154,7 +154,7 @@ export class TodoPool extends Singleton {
 	 */
 	update(
 		title: string,
-		updates: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high'; dueAt?: number | Date | null }
+		updates: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; dueAt?: number | Date | null }
 	): Result<Todo, TodoPoolError> {
 		const id = this.#titleToId.get(title.toLowerCase());
 		if (!id) {

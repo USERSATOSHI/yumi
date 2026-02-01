@@ -248,7 +248,7 @@ export class CoreDB extends Singleton {
 		}[];
 	}
 
-	getTodosByPriority(priority: 'low' | 'medium' | 'high') {
+	getTodosByPriority(priority: 'low' | 'medium' | 'high' | 'urgent') {
 		return this.db.prepare(`
 			SELECT id, title, description, priority, due_at, completed, completed_at, created_at, updated_at
 			FROM todos WHERE priority = $priority AND completed = 0
@@ -299,7 +299,7 @@ export class CoreDB extends Singleton {
 
 	updateTodo(
 		id: number,
-		updates: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high'; dueAt?: number | null }
+		updates: { title?: string; description?: string; priority?: 'low' | 'medium' | 'high' | 'urgent'; dueAt?: number | null }
 	) {
 		const todo = this.getTodo(id);
 		if (!todo) return false;
